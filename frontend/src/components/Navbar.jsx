@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 const STORAGE_KEY = "doctorToken_v1";
 import logo from "../assets/logo.png";
@@ -22,6 +22,40 @@ const Navbar = () => {
   const clerk = useClerk();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        setShowNavbar(false);
+      } else {
+        setShowNavbar(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === STORAGE_KEY) {
+        setIsDoctorLoggedIn(Boolean(e.newValue));
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && navRef.current && !navRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Doctors", href: "/doctors" },
@@ -33,7 +67,7 @@ const Navbar = () => {
   return (
     <>
       <div className={navbarStyles.navbarBorder}></div>
-      <nav
+      <nav ref={navRef}
         className={`${navbarStyles.navbarContainer} ${showNavbar ? navbarStyles.navbarVisible : navbarStyles.navbarHidden}`}
       >
         <div className={navbarStyles.contentWrapper}>
