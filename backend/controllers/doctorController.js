@@ -1,6 +1,5 @@
-import Doctor from "./models/Doctor.js";
+import Doctor from "../models/Doctor.js";
 import {
-  UploadToCloudinary,
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../utils/cloudinary.js";
@@ -256,7 +255,7 @@ export async function getDoctorById(req, res) {
       });
     return res.json({ success: true, data: normalizeDocForClient(doc) });
   } catch (error) {
-    console.error("getDoctorById error:", err);
+    console.error("getDoctorById error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 }
@@ -268,12 +267,10 @@ export async function updateDoctor(req, res) {
     const body = req.body || {};
 
     if (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id)) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Not authorized to update this doctor",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this doctor",
+      });
     }
 
     const existing = await Doctor.findById(id);
@@ -355,13 +352,13 @@ export async function deleteDoctor(req, res) {
       try {
         await deleteFromCloudinary(existing.imagePublicId);
       } catch (error) {
-        console.warn("DeleteFromCloudinary warning", error?.message || e);
+        console.warn("DeleteFromCloudinary warning", error?.message || error);
       }
     }
     await Doctor.findByIdAndDelete(id);
     return res.json({ success: true, message: "Doctor Removed" });
   } catch (error) {
-    console.error("deleteDoctor error:", err);
+    console.error("deleteDoctor error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 }
@@ -372,12 +369,10 @@ export async function toggleAvailability(req, res) {
     const { id } = req.params;
 
     if (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id)) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Not authorized to update this doctor's availability",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this doctor's availability",
+      });
     }
     const doc = await Doctor.findById(id);
     if (!doc)
@@ -397,7 +392,7 @@ export async function toggleAvailability(req, res) {
     delete out.password;
     return res.json({ success: true, data: out });
   } catch (error) {
-    console.error("toggleAvailability error:", err);
+    console.error("toggleAvailability error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 }
@@ -440,7 +435,7 @@ export async function doctorLogin(req, res) {
     delete out.password;
     return res.json({ success: true, token, data: out });
   } catch (error) {
-    console.error("doctorLogin error:", err);
+    console.error("doctorLogin error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 }

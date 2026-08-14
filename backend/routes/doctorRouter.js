@@ -1,7 +1,7 @@
-import express from 'express.js';
+import express from 'express';
 import multer from 'multer';
 
-import { createDoctor, doctorLogin, getDoctorById, getDoctors, toggleAvailability } from '../controllers/doctorController';
+import { createDoctor, deleteDoctor, doctorLogin, getDoctorById, getDoctors, toggleAvailability, updateDoctor } from '../controllers/doctorController.js';
 import doctorAuth from '../middlewares/doctorAuth.js';
 const upload = multer({ dest: "/tmp"});
 
