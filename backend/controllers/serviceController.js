@@ -95,7 +95,7 @@ export async function createService(req, res) {
       shortDescription: b.shortDescription || "",
       price: numericPrice,
       available,
-      instruction,
+      instructions,
       slots,
       imageUrl,
       imagePublicId,

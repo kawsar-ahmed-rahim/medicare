@@ -18,7 +18,6 @@ serviceRouter.get("/:id", getServiceById);
 serviceRouter.post("/", upload.single("image"), createService);
 serviceRouter.put("/:id", upload.single("image"), updateService);
 
-serviceRouter.post("/:id/toggle-availability", serviceAuth, toggleAvailability);
 serviceRouter.delete("/:id", deleteService);
 
 export default serviceRouter;
