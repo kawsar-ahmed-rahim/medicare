@@ -322,4 +322,105 @@ export const createAppointment = async (req, res) => {
   }
 }; 
 // to confirm the online payment and make it paid
+export const confirmPayment = async (req,res) => {
+  try {
+    const {session_id} = req.query;
+    if(!session_id) return res.status(400).json({
+      success: false,
+      message: "Session Is is required."
+    });
+    if(!stripe) return res.status(500).json({
+      success: false,
+      message: "Stripe is not setup"
+    });
+    let session;
+    try {
+      session = await stripe.checkout.session.retrieve(session_id);
 
+      
+    } catch (error) {
+       console.error("stripe retrieve session error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+    }
+    if(!session) return res.status(404).json({
+      success: false,
+      message: "Invalid session"
+    })
+    if(session.payment_status !== "paid") {
+      return res.status(400).json({
+        success: false,
+        message: "payment not completed"
+      })
+    }
+     let appt = await Appointment.findOneAndUpdate(
+      { sessionId: session_id },
+      {
+        "payment.status": "Paid",
+        "payment.providerId": session.payment_intent || session.payment_intent_id || null,
+        status: "Confirmed",
+        paidAt: new Date(),
+      },
+      { new: true }
+    );
+
+    // fallback: try match via metadata (doctorId + mobile + patientName)
+    if (!appt) {
+      const meta = session.metadata || {};
+      if (meta.doctorId && meta.mobile && meta.patientName) {
+        appt = await Appointment.findOneAndUpdate(
+          {
+            doctorId: meta.doctorId,
+            mobile: meta.mobile,
+            patientName: meta.patientName,
+            fees: Math.round((session.amount_total || 0) / 100) || undefined,
+          },
+          {
+            "payment.status": "Paid",
+            "payment.providerId": session.payment_intent || null,
+            status: "Confirmed",
+            paidAt: new Date(),
+            sessionId: session_id,
+          },
+          { new: true }
+        );
+      }
+    }
+
+    // last attempt: find appointment created in last 15 minutes with matching amount
+    if (!appt) {
+      const amount = Math.round((session.amount_total || 0) / 100);
+      const fifteenAgo = new Date(Date.now() - 1000 * 60 * 15);
+      appt = await Appointment.findOneAndUpdate(
+        { fees: amount, createdAt: { $gte: fifteenAgo } },
+        {
+          "payment.status": "Paid",
+          "payment.providerId": session.payment_intent || null,
+          status: "Confirmed",
+          paidAt: new Date(),
+          sessionId: session_id,
+        },
+        { new: true }
+      );
+    }
+
+    if (!appt) {
+      return res.status(404).json({ success: false, message: "Appointment not found for this payment session" });
+    }
+    return res.json({
+       success: true,
+       appointment: appt
+    });
+  } catch (error) {
+     console.error("ConfirmPayment error", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+// to update an appointment
+export const updateAppointment = async (req, res) => {
+  try {
+    
+  } catch (error) {
+    
+  }
+}
