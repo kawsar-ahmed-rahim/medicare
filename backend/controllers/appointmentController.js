@@ -3,7 +3,7 @@ import Doctor from "../models/Doctor.js";
 import dotenv from "dotenv";
 import stripe from "stripe";
 import { getAuth } from "@clerk/express";
-import { clerkClient } from "@clerk/express";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 dotenv.config();
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
@@ -285,13 +285,11 @@ export const createAppointment = async (req, res) => {
 
     const frontBase = buildFrontendBase(req);
     if (!frontBase) {
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message:
-            "Frontend URL could not be determined. Set FRONTEND_URL or send Origin header.",
-        });
+      return res.status(500).json({
+        success: false,
+        message:
+          "Frontend URL could not be determined. Set FRONTEND_URL or send Origin header.",
+      });
     }
 
     const successUrl = `${frontBase}/appointment/success?session_id={CHECKOUT_SESSION_ID}`;
@@ -330,12 +328,10 @@ export const createAppointment = async (req, res) => {
       console.error("Stripe create session error:", stripeErr);
       const message =
         stripeErr?.raw?.message || stripeErr?.message || "Stripe error";
-      return res
-        .status(502)
-        .json({
-          success: false,
-          message: `Payment provider error: ${message}`,
-        });
+      return res.status(502).json({
+        success: false,
+        message: `Payment provider error: ${message}`,
+      });
     }
 
     try {
@@ -348,21 +344,17 @@ export const createAppointment = async (req, res) => {
         },
         status: "Pending",
       });
-      return res
-        .status(201)
-        .json({
-          success: true,
-          appointment: created,
-          checkoutUrl: session.url || null,
-        });
+      return res.status(201).json({
+        success: true,
+        appointment: created,
+        checkoutUrl: session.url || null,
+      });
     } catch (dbErr) {
       console.error("DB error saving appointment after stripe session:", dbErr);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "Failed to create appointment record",
-        });
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create appointment record",
+      });
     }
   } catch (err) {
     console.error("createAppointment unexpected:", err);
@@ -454,12 +446,10 @@ export const confirmPayment = async (req, res) => {
     }
 
     if (!appt) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Appointment not found for this payment session",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found for this payment session",
+      });
     }
     return res.json({
       success: true,
@@ -485,12 +475,10 @@ export const updateAppointment = async (req, res) => {
       });
     const terminal = appt.status === "Completed" || appt.status === "Canceled";
     if (terminal && body.status && body.status !== appt.status) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Cannot change status of a completed/canceled appointment",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Cannot change status of a completed/canceled appointment",
+      });
     }
 
     const update = {};
@@ -499,12 +487,10 @@ export const updateAppointment = async (req, res) => {
 
     if (body.date && body.time) {
       if (appt.status === "Completed" || appt.status === "Canceled") {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Cannot reschedule completed/canceled appointment",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Cannot reschedule completed/canceled appointment",
+        });
       }
       update.date = body.date;
       update.time = body.time;
@@ -520,9 +506,10 @@ export const updateAppointment = async (req, res) => {
         select: "name imageUrl",
       })
       .lean();
-      return res.json({
-        success: true, appointment: updated
-      })
+    return res.json({
+      success: true,
+      appointment: updated,
+    });
   } catch (error) {
     console.error("updateAppointment error", error);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -542,45 +529,57 @@ export const cancelAppointment = async (req, res) => {
         success: false,
         message: "Appointment not found",
       });
-      appt.status = "Cancelled";
-      await appt.save();
-      return res.json({ success: true, appointment: appt})
+    appt.status = "Cancelled";
+    await appt.save();
+    return res.json({ success: true, appointment: appt });
   } catch (error) {
     console.error("cancelAppointment error", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
-}
+};
 
 // to get status
 export const getStats = async (req, res) => {
   try {
     const total = await Appointment.countDocuments();
-    const paidAgg = await Appointment.aggregate([{ $match: { "payment.status": "Paid" } }, { $group: { _id: null, total: { $sum: "$fees" } } }]);
+    const paidAgg = await Appointment.aggregate([
+      { $match: { "payment.status": "Paid" } },
+      { $group: { _id: null, total: { $sum: "$fees" } } },
+    ]);
     const revenue = (paidAgg[0] && paidAgg[0].total) || 0;
 
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
-    const recent = await Appointment.countDocuments({createdAt: {$gte: sevenDaysAgo}});
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recent = await Appointment.countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    });
 
     return res.json({
       success: true,
-      status: {total, revenue, recentLast7Days: recent}
-    })
+      status: { total, revenue, recentLast7Days: recent },
+    });
   } catch (error) {
     console.error("getStats error", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
-}
+};
 
 // to getAppointments by doctor\
 export const getAppointmentsByDoctor = async (req, res) => {
   try {
-    const {doctorId} = req.params;
-    if(!doctorId) return res.status(400).json({
-      success: false,
-      message: "Doctor not found"
-    });
-    const { mobile, status, search = "", limit: limitRaw = 50, page: pageRaw = 1 } = req.query;
+    const { doctorId } = req.params;
+    if (!doctorId)
+      return res.status(400).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    const {
+      mobile,
+      status,
+      search = "",
+      limit: limitRaw = 50,
+      page: pageRaw = 1,
+    } = req.query;
     const limit = Math.min(200, Math.max(1, parseInt(limitRaw, 10) || 50));
     const page = Math.max(1, parseInt(pageRaw, 10) || 1);
     const skip = (page - 1) * limit;
@@ -591,18 +590,49 @@ export const getAppointmentsByDoctor = async (req, res) => {
     if (search) {
       const re = new RegExp(search, "i");
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
-    };
-    const items = await Appointment.find(filter).sort({ date: 1, time: 1}).skip(skip).limit(limit).populate("doctorId", "name specialization owner imageUrl image").lean();
+    }
+    const items = await Appointment.find(filter)
+      .sort({ date: 1, time: 1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("doctorId", "name specialization owner imageUrl image")
+      .lean();
 
     const total = await Appointment.countDocuments(filter);
     return res.json({
       success: true,
       appointments: items,
-      meta: {page, limit,total,count: items.length}
-    })
+      meta: { page, limit, total, count: items.length },
+    });
   } catch (error) {
     console.error("getAppointmentsByDoctor error", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
+};
+
+// to get Register user count
+
+export async function getRegisteredUserCount(req, res) {
+  try {
+    const totalUsers = await clerkClient.users.getCount();
+    return res.json({
+      success: true,
+      totalUsers,
+    });
+  } catch (error) {
+    console.error("getRegisteredUserCount error", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 }
 
+export default {
+  getAppointments,
+  getAppointmentByPatient,
+  createAppointment,
+  confirmPayment,
+  updateAppointment,
+  cancelAppointment,
+  getStats,
+  getAppointmentsByDoctor,
+  getRegisteredUserCount,
+};
