@@ -1,10 +1,14 @@
 import { navbarStyles as ns } from "../assets/dummyStyles.js";
 import logoImg from "../assets/logo.png";
-import { Link } from "react-router-dom";
-import { useState, useEffect, useCallback, useLayoutEffect } from "react";
-import { useClerk } from "@clerk/clerk-react";
-import { useUser } from "@clerk/react";
-
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+} from "react";
+import { useClerk, useAuth, useUser } from "@clerk/clerk-react";
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const navInnerRef = useRef(null);
@@ -129,7 +133,6 @@ const Navbar = () => {
 
   // to signout
   const handleSignOut = async () => {
-    
     if (!clerk || !clerk.signOut) {
       console.warn("not available");
       return;
@@ -137,19 +140,16 @@ const Navbar = () => {
     try {
       await clerk.signOut();
     } catch (error) {
-      console.error("failed",error);
-      
+      console.error("failed", error);
     } finally {
       try {
-              localStorage.removeItem("clerk_token")
-
+        localStorage.removeItem("clerk_token");
       } catch (error) {
         console.log(error);
-        
       }
-      navigate("/")
+      navigate("/");
     }
-  }
+  };
 
   return (
     <header className={ns.header}>
@@ -236,8 +236,100 @@ const Navbar = () => {
                 </button>
               </div>
             )}
+            {/* mobile toggle */}
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className={ns.mobileMenuButton}
+            >
+              {open ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </div>
+        {/* mobile navigation */}
+        {open && (
+          <div className={ns.mobileOverlay} onClick={() => setOpen(false)} />
+        )}
+        {open && (
+          <div className={ns.mobileMenuContainer} id="mobile-menu">
+            <div className={ns.mobileMenuInner}>
+              <MobileItem
+                to="/h"
+                label="Dashboard"
+                icon={<Home size={16} />}
+                onClick={() => setOpen(false)}
+              />
+
+              <MobileItem
+                to="/add"
+                label="Add Doctor"
+                icon={<UserPlus size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <MobileItem
+                to="/list"
+                label="List Doctors"
+                icon={<Users size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <MobileItem
+                to="/appointments"
+                label="Appointments"
+                icon={<Calendar size={16} />}
+                onClick={() => setOpen(false)}
+              />
+
+              <MobileItem
+                to="/service-dashboard"
+                label="Service Dashboard"
+                icon={<Grid size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <MobileItem
+                to="/add-service"
+                label="Add Service"
+                icon={<PlusSquare size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <MobileItem
+                to="/list-service"
+                label="List Services"
+                icon={<List size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <MobileItem
+                to="/service-appointments"
+                label="Service Appointments"
+                icon={<Calendar size={16} />}
+                onClick={() => setOpen(false)}
+              />
+              <div>
+                {isSignedIn ? (
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setOpen(false);
+                    }}
+                    className={ns.mobileSignOutButton}
+                  >
+                    Sign out
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        handleOpenSignIn();
+                        setOpen(false);
+                      }}
+                      className={ns.mobileLoginButton + " " + ns.cursorPointer}
+                    >
+                      Login
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
     </header>
   );
@@ -247,7 +339,7 @@ export default Navbar;
 
 function CenterNavItem({ to, icon, label }) {
   return (
-    <navLink
+    <NavLink
       to={to}
       end
       className={({ isActive }) =>
@@ -256,6 +348,21 @@ function CenterNavItem({ to, icon, label }) {
     >
       <span>{icon}</span>
       <span className="font-medium">{label}</span>
+    </NavLink>
+  );
+}
+
+function MobileItem({ to, icon, label, onClick }) {
+  return (
+    <navLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `${ns.mobileItemBase} ${isActive ? ns.mobileItemActive : ns.mobileItemInactive}`
+      }
+    >
+      {icon}
+      <span className="font-medium text-sm">{label}</span>
     </navLink>
   );
 }
