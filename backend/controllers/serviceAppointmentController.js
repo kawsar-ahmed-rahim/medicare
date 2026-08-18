@@ -1,10 +1,13 @@
-import ServiceAppointment from './../models/serviceAppointment';
+import ServiceAppointment from "./../models/serviceAppointment";
 import Service from "../models/Service";
 import Stripe from "stripe";
 import { getAuth } from "@clerk/express";
+import { getServiceAppointments } from "./serviceAppointmentController";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY || null;
-const stripe = stripeKey ? new Stripe(stripeKey, {apiVersion: "2022-11-15"}) : null;
+const stripe = stripeKey
+  ? new Stripe(stripeKey, { apiVersion: "2022-11-15" })
+  : null;
 
 // helper functions
 const safeNumber = (val) => {
@@ -45,7 +48,8 @@ const buildFrontendBase = (req) => {
 function resolveClerkUserId(req) {
   try {
     const auth = req.auth || {};
-    const candidate = auth?.userId || auth?.user_id || auth?.user?.id || req.user?.id || null;
+    const candidate =
+      auth?.userId || auth?.user_id || auth?.user?.id || req.user?.id || null;
     if (candidate) return candidate;
     try {
       const serverAuth = getAuth ? getAuth(req) : null;
@@ -59,15 +63,16 @@ function resolveClerkUserId(req) {
 }
 
 // to create a serviceAppointment
-export const createServiceAppointment = async (req,res) => {
+export const createServiceAppointment = async (req, res) => {
   try {
     const body = req.body || {};
     const clerkUserId = resolveClerkUserId(req);
-    if(!clerkUserId) return res.status(401).json({
-      success: false,
-      message: "Authentication is required to create a service appointment"
-    }) ;
-     const {
+    if (!clerkUserId)
+      return res.status(401).json({
+        success: false,
+        message: "Authentication is required to create a service appointment",
+      });
+    const {
       serviceId,
       serviceName: serviceNameFromBody,
       patientName,
@@ -89,13 +94,29 @@ export const createServiceAppointment = async (req,res) => {
       serviceImagePublicId: serviceImagePublicIdFromBody,
     } = body;
 
-   if (!serviceId) return res.status(400).json({ success: false, message: "serviceId is required" });
-    if (!patientName || !String(patientName).trim()) return res.status(400).json({ success: false, message: "patientName is required" });
-    if (!mobile || !String(mobile).trim()) return res.status(400).json({ success: false, message: "mobile is required" });
-    if (!date || !String(date).trim()) return res.status(400).json({ success: false, message: "date is required (YYYY-MM-DD)" });
+    if (!serviceId)
+      return res
+        .status(400)
+        .json({ success: false, message: "serviceId is required" });
+    if (!patientName || !String(patientName).trim())
+      return res
+        .status(400)
+        .json({ success: false, message: "patientName is required" });
+    if (!mobile || !String(mobile).trim())
+      return res
+        .status(400)
+        .json({ success: false, message: "mobile is required" });
+    if (!date || !String(date).trim())
+      return res
+        .status(400)
+        .json({ success: false, message: "date is required (YYYY-MM-DD)" });
 
     const numericAmount = safeNumber(amountFromBody ?? feesFromBody ?? 0);
-    if (numericAmount === null || numericAmount < 0) return res.status(400).json({ success: false, message: "amount/fees must be a valid number" });
+    if (numericAmount === null || numericAmount < 0)
+      return res.status(400).json({
+        success: false,
+        message: "amount/fees must be a valid number",
+      });
 
     let finalHour = hour !== undefined ? safeNumber(hour) : null;
     let finalMinute = minute !== undefined ? safeNumber(minute) : null;
@@ -103,14 +124,25 @@ export const createServiceAppointment = async (req,res) => {
 
     if (time && (finalHour === null || finalHour === undefined)) {
       const parsed = parseTimeString(time);
-      if (!parsed) return res.status(400).json({ success: false, message: "time string couldn't be parsed" });
+      if (!parsed)
+        return res
+          .status(400)
+          .json({ success: false, message: "time string couldn't be parsed" });
       finalHour = parsed.hour;
       finalMinute = parsed.minute;
       finalAmpm = parsed.ampm;
     }
 
-    if (finalHour === null || finalMinute === null || (finalAmpm !== "AM" && finalAmpm !== "PM")) {
-      return res.status(400).json({ success: false, message: "Time missing or invalid — provide time string or hour, minute and ampm." });
+    if (
+      finalHour === null ||
+      finalMinute === null ||
+      (finalAmpm !== "AM" && finalAmpm !== "PM")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Time missing or invalid — provide time string or hour, minute and ampm.",
+      });
     }
 
     // DUPLICATE BOOKING CHECK
@@ -124,25 +156,64 @@ export const createServiceAppointment = async (req,res) => {
         ampm: finalAmpm,
         status: { $ne: "Canceled" },
       }).lean();
-      if (existing) return res.status(409).json({ success: false, message: "You already have a booking for this service at the selected date and time." });
+      if (existing)
+        return res.status(409).json({
+          success: false,
+          message:
+            "You already have a booking for this service at the selected date and time.",
+        });
     } catch (chkErr) {
       console.warn("Duplicate booking check failed:", chkErr);
     }
 
     // Fetch service snapshot (non-fatal)
     let svc = null;
-    try { svc = await Service.findById(serviceId).lean(); } catch (e) { console.warn("Service lookup failed:", e?.message || e); }
+    try {
+      svc = await Service.findById(serviceId).lean();
+    } catch (e) {
+      console.warn("Service lookup failed:", e?.message || e);
+    }
 
-    let resolvedServiceName = serviceNameFromBody || (svc && (svc.name || svc.title)) || "Service";
-    const svcImageUrlFromDB = svc && (String(svc.imageUrl || svc.image || svc.image?.url || svc.profileImage?.url || "").trim() || "");
-    const svcImagePublicIdFromDB = svc && (String(svc.imagePublicId || svc.image?.publicId || svc.profileImage?.publicId || "").trim() || "");
-    const finalServiceImageUrl = (svcImageUrlFromDB && svcImageUrlFromDB.length) ? svcImageUrlFromDB : ((serviceImageUrlFromBody && String(serviceImageUrlFromBody).trim()) || "");
-    const finalServiceImagePublicId = (svcImagePublicIdFromDB && svcImagePublicIdFromDB.length) ? svcImagePublicIdFromDB : ((serviceImagePublicIdFromBody && String(serviceImagePublicIdFromBody).trim()) || "");
+    let resolvedServiceName =
+      serviceNameFromBody || (svc && (svc.name || svc.title)) || "Service";
+    const svcImageUrlFromDB =
+      svc &&
+      (String(
+        svc.imageUrl ||
+          svc.image ||
+          svc.image?.url ||
+          svc.profileImage?.url ||
+          "",
+      ).trim() ||
+        "");
+    const svcImagePublicIdFromDB =
+      svc &&
+      (String(
+        svc.imagePublicId ||
+          svc.image?.publicId ||
+          svc.profileImage?.publicId ||
+          "",
+      ).trim() ||
+        "");
+    const finalServiceImageUrl =
+      svcImageUrlFromDB && svcImageUrlFromDB.length
+        ? svcImageUrlFromDB
+        : (serviceImageUrlFromBody && String(serviceImageUrlFromBody).trim()) ||
+          "";
+    const finalServiceImagePublicId =
+      svcImagePublicIdFromDB && svcImagePublicIdFromDB.length
+        ? svcImagePublicIdFromDB
+        : (serviceImagePublicIdFromBody &&
+            String(serviceImagePublicIdFromBody).trim()) ||
+          "";
 
     const base = {
       serviceId,
       serviceName: resolvedServiceName,
-      serviceImage: { url: finalServiceImageUrl, publicId: finalServiceImagePublicId },
+      serviceImage: {
+        url: finalServiceImageUrl,
+        publicId: finalServiceImagePublicId,
+      },
       patientName: String(patientName).trim(),
       mobile: String(mobile).trim(),
       age: age ? Number(age) : undefined,
@@ -158,20 +229,48 @@ export const createServiceAppointment = async (req,res) => {
 
     // Free appointment
     if (numericAmount === 0) {
-      const created = await ServiceAppointment.create({ ...base, status: "Pending", payment: { method: "Cash", status: "Pending", amount: 0, paidAt: new Date() } });
+      const created = await ServiceAppointment.create({
+        ...base,
+        status: "Pending",
+        payment: {
+          method: "Cash",
+          status: "Pending",
+          amount: 0,
+          paidAt: new Date(),
+        },
+      });
       return res.status(201).json({ success: true, appointment: created });
     }
 
     // Cash booking
     if (paymentMethod === "Cash") {
-      const created = await ServiceAppointment.create({ ...base, status: "Pending", payment: { method: "Cash", status: "Pending", amount: numericAmount, meta } });
-      return res.status(201).json({ success: true, appointment: created, checkoutUrl: null });
+      const created = await ServiceAppointment.create({
+        ...base,
+        status: "Pending",
+        payment: {
+          method: "Cash",
+          status: "Pending",
+          amount: numericAmount,
+          meta,
+        },
+      });
+      return res
+        .status(201)
+        .json({ success: true, appointment: created, checkoutUrl: null });
     }
 
     // Online booking (Stripe)
-    if (!stripe) return res.status(500).json({ success: false, message: "Stripe not configured on server" });
+    if (!stripe)
+      return res
+        .status(500)
+        .json({ success: false, message: "Stripe not configured on server" });
     const frontendBase = buildFrontendBase(req);
-    if (!frontendBase) return res.status(500).json({ success: false, message: "Frontend base URL not available. Set FRONTEND_URL or provide Origin header." });
+    if (!frontendBase)
+      return res.status(500).json({
+        success: false,
+        message:
+          "Frontend base URL not available. Set FRONTEND_URL or provide Origin header.",
+      });
 
     const successUrl = `${frontendBase}/service-appointment/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${frontendBase}/service-appointment/cancel`;
@@ -203,25 +302,46 @@ export const createServiceAppointment = async (req,res) => {
           patientName: base.patientName,
           mobile: base.mobile,
           clerkUserId: base.createdBy || "",
-          serviceImageUrl: finalServiceImageUrl ? String(finalServiceImageUrl).slice(0, 200) : "",
+          serviceImageUrl: finalServiceImageUrl
+            ? String(finalServiceImageUrl).slice(0, 200)
+            : "",
         },
       });
     } catch (stripeErr) {
       console.error("Stripe create session error:", stripeErr);
-      const message = stripeErr?.raw?.message || stripeErr?.message || "Stripe error";
-      return res.status(502).json({ success: false, message: `Payment provider error: ${message}` });
+      const message =
+        stripeErr?.raw?.message || stripeErr?.message || "Stripe error";
+      return res.status(502).json({
+        success: false,
+        message: `Payment provider error: ${message}`,
+      });
     }
 
     try {
       const created = await ServiceAppointment.create({
         ...base,
         status: "Confirmed",
-        payment: { method: "Online", status: "Pending", amount: numericAmount, sessionId: session.id || "" },
+        payment: {
+          method: "Online",
+          status: "Pending",
+          amount: numericAmount,
+          sessionId: session.id || "",
+        },
       });
-      return res.status(201).json({ success: true, appointment: created, checkoutUrl: session.url || null });
+      return res.status(201).json({
+        success: true,
+        appointment: created,
+        checkoutUrl: session.url || null,
+      });
     } catch (dbErr) {
-      console.error("DB error saving service appointment after stripe session:", dbErr);
-      return res.status(500).json({ success: false, message: "Failed to create appointment record" });
+      console.error(
+        "DB error saving service appointment after stripe session:",
+        dbErr,
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create appointment record",
+      });
     }
   } catch (err) {
     console.error("createServiceAppointment unexpected:", err);
@@ -230,35 +350,40 @@ export const createServiceAppointment = async (req,res) => {
 };
 
 // to confirm the servicePayment
-export const confirmServicePayment = async (req,res) => {
+export const confirmServicePayment = async (req, res) => {
   try {
-    const { session_id} = req.query;
-    if(!success_id) return res.status(400).json({
-      success: false,
-      message: " session Id is req"
-    });
-    if(!stripe) return res.status(500).json({
-      success: false,
-      message: " Stripe is not configured"
-    });
+    const { session_id } = req.query;
+    if (!success_id)
+      return res.status(400).json({
+        success: false,
+        message: " session Id is req",
+      });
+    if (!stripe)
+      return res.status(500).json({
+        success: false,
+        message: " Stripe is not configured",
+      });
     let session;
     try {
       session = await stripe.checkout.sessions.retrieve(session_id);
     } catch (error) {
-      console.error("stripe error",error);
-      return res.status(404).json({ success: false, message: "Stripe session is not found" });
-
+      console.error("stripe error", error);
+      return res
+        .status(404)
+        .json({ success: false, message: "Stripe session is not found" });
     }
 
-    if(!success) return res.status(404).json({
-      success: false,
-      message: "Invalid session"
-    });
-    if(session.payment_status !== "paid") return res.status(400).json({
-      success: false,
-      message: "Payment not completed"
-    });
-     let appt = await ServiceAppointment.findOneAndUpdate(
+    if (!success)
+      return res.status(404).json({
+        success: false,
+        message: "Invalid session",
+      });
+    if (session.payment_status !== "paid")
+      return res.status(400).json({
+        success: false,
+        message: "Payment not completed",
+      });
+    let appt = await ServiceAppointment.findOneAndUpdate(
       { "payment.sessionId": session_id },
       {
         $set: {
@@ -268,7 +393,7 @@ export const confirmServicePayment = async (req,res) => {
           status: "Confirmed",
         },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!appt && session.metadata?.appointmentId) {
@@ -282,22 +407,32 @@ export const confirmServicePayment = async (req,res) => {
             status: "Confirmed",
           },
         },
-        { new: true }
+        { new: true },
       );
     }
 
-    if (!appt) return res.status(404).json({ success: false, message: "Service appointment not found" });
-    return res.json({success: true, appointment: appt})
+    if (!appt)
+      return res
+        .status(404)
+        .json({ success: false, message: "Service appointment not found" });
+    return res.json({ success: true, appointment: appt });
   } catch (error) {
-     console.error("confirmServicePayment unexpected:", error);
+    console.error("confirmServicePayment unexpected:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
-}
+};
 
 // to getServiceAppointments
 export const getServiceAppointments = async (req, res) => {
   try {
-     const { serviceId, mobile, status, page: pageRaw = 1, limit: limitRaw = 50, search = "" } = req.query;
+    const {
+      serviceId,
+      mobile,
+      status,
+      page: pageRaw = 1,
+      limit: limitRaw = 50,
+      search = "",
+    } = req.query;
     const limit = Math.min(200, Math.max(1, parseInt(limitRaw, 10) || 50));
     const page = Math.max(1, parseInt(pageRaw, 10) || 1);
     const skip = (page - 1) * limit;
@@ -310,15 +445,86 @@ export const getServiceAppointments = async (req, res) => {
       const re = new RegExp(search, "i");
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
     }
-    const appointment = await ServiceAppointment.find(filter).populate("ServiceId","name imageUrl imageSmall").sort({ createAt: -1}).skip(skip).limit.lean();
+    const appointment = await ServiceAppointment.find(filter)
+      .populate("ServiceId", "name imageUrl imageSmall")
+      .sort({ createAt: -1 })
+      .skip(skip)
+      .limit.lean();
     const total = await ServiceAppointment.countDocuments(filter);
     return res.json({
       success: true,
       appointments,
-      meta: { page, limit, total, count: appointments.length }
-    })
+      meta: { page, limit, total, count: appointments.length },
+    });
   } catch (error) {
     console.error("getServiceAppointments unexpected:", error);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// to getServiceAppointmentById
+export const getServiceAppointmentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appt = await ServiceAppointment.findById(id).lean();
+
+    if (!appt)
+      return res.status(404).json({
+        success: false,
+        message: "Not found the appointment",
+      });
+    return res.json({
+      success: true,
+      data: appt,
+    });
+  } catch (error) {
+    console.error("getServiceAppointmentById unexpected:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// to update an appointment
+
+export const updateServiceAppointment = async (req, res) => {
+  try {
+    const {id} = req.params;
+    const body = req.body || {};
+    const update = {};
+     if (body.status !== undefined) updates.status = body.status;
+    if (body.notes !== undefined) updates.notes = body.notes;
+    if (body.payment !== undefined) updates.payment = body.payment;
+    if (body["payment.status"] !== undefined) updates["payment.status"] = body["payment.status"];
+
+    if (body.rescheduledTo) {
+      const { date, time } = body.rescheduledTo || {};
+      updates.rescheduledTo = {};
+      if (date) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ success: false, message: "rescheduledTo.date must be YYYY-MM-DD" });
+        updates.rescheduledTo.date = date;
+        updates.date = date;
+      }
+      if (time) {
+        updates.rescheduledTo.time = String(time);
+        const parsed = parseTimeString(String(time));
+        if (!parsed) return res.status(400).json({ success: false, message: "rescheduledTo.time couldn't be parsed" });
+        updates.hour = parsed.hour;
+        updates.minute = parsed.minute;
+        updates.ampm = parsed.ampm;
+        updates.time = `${String(parsed.hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")} ${parsed.ampm}`;
+      }
+      if (!body.status) updates.status = "Rescheduled";
+    }
+
+    if (updates.payment) {
+      const method = updates.payment.method || updates.payment?.method;
+      if (method && String(method).toLowerCase() === "online") updates.status = updates.status || "Confirmed";
+      if (updates.payment.status && updates.payment.status === "Confirmed") {
+        updates.status = "Confirmed";
+        if (updates.payment.paidAt === undefined) updates.payment.paidAt = new Date();
+      }
+    }
+
+  } catch (error) {
+    
   }
 }
