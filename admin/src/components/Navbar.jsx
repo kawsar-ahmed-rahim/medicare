@@ -1,13 +1,155 @@
 import { navbarStyles as ns } from "../assets/dummyStyles.js";
 import logoImg from "../assets/logo.png";
 import { Link } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import { useClerk } from "@clerk/clerk-react";
+import { useUser } from "@clerk/react";
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const navInnerRef = useRef(null);
   const indicatorRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
+  // clerk
+  const clerk = useClerk?.();
+  const { getToken, isLoaded: authLoaded } = useAuth();
+  const { isSignedIn, user, isLoaded: userLoaded } = useUser();
+
+  const moveIndicator = useCallback(() => {
+    const container = navInnerRef.current;
+    const ind = indicatorRef.current;
+    if (!container || !ind) return;
+
+    const active = container.querySelector(".nav-item.active");
+    if (!active) {
+      ind.style.opacity = "0";
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+
+    const left = activeRect.left - containerRect.left + container.scrollLeft;
+    const width = activeRect.width;
+
+    ind.style.transform = `translateX(${left}px)`;
+    ind.style.width = `${width}px`;
+    ind.style.opacity = "1";
+  }, []);
+
+  useLayoutEffect(() => {
+    moveIndicator();
+    const t = setTimeout(() => {
+      moveIndicator();
+    }, 120);
+    return () => clearTimeout(t);
+  }, [location.pathname, moveIndicator]);
+
+  useEffect(() => {
+    const container = navInnerRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      moveIndicator();
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+
+    const ro = new ResizeObserver(() => {
+      moveIndicator();
+    });
+    ro.observe(container);
+    if (container.parentElement) ro.observe(container.parentElement);
+
+    window.addEventListener("resize", moveIndicator);
+
+    moveIndicator();
+
+    return () => {
+      container.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      window.removeEventListener("resize", moveIndicator);
+    };
+  }, [moveIndicator]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape" && open) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    let mounted = true;
+    const storeToken = async () => {
+      if (!authLoaded || !userLoaded) return;
+      if (!isSignedIn) {
+        try {
+          localStorage.removeItem("clerk_token");
+        } catch (error) {
+          console.log(error);
+        }
+        return;
+      }
+      try {
+        if (getToken) {
+          const token = await getToken();
+          if (!mounted) return;
+          if (token) {
+            try {
+              localStorage.setItem("clerk_token", token);
+            } catch (error) {
+              console.warn("failed", error);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("failed", error);
+      }
+    };
+    storeToken();
+    return (
+      () => {
+        mounted = false;
+      },
+      [isSignedIn, authLoaded, userLoaded, getToken]
+    );
+  });
+
+  // to open clerk login box
+  const handleOpenSignIn = () => {
+    if (!clerk || !clerk.openSignIn) {
+      console.warn("not available");
+      return;
+    }
+    clerk.openSignIn();
+    navigate("/h");
+  };
+
+  // to signout
+  const handleSignOut = async () => {
+    
+    if (!clerk || !clerk.signOut) {
+      console.warn("not available");
+      return;
+    }
+    try {
+      await clerk.signOut();
+    } catch (error) {
+      console.error("failed",error);
+      
+    } finally {
+      try {
+              localStorage.removeItem("clerk_token")
+
+      } catch (error) {
+        console.log(error);
+        
+      }
+      navigate("/")
+    }
+  }
 
   return (
     <header className={ns.header}>
@@ -30,7 +172,7 @@ const Navbar = () => {
                   className={ns.centerNavScrollContainer}
                   style={{ WebkitOverflowScrolling: "touch" }}
                 >
-                    <CenterNavItem
+                  <CenterNavItem
                     to="/h"
                     label="Dashboard"
                     icon={<Home size={16} />}
@@ -74,6 +216,27 @@ const Navbar = () => {
               </div>
             </div>
           </div>
+          {/* right side */}
+          <div className={ns.rightContainer}>
+            {/* auth */}
+            {isSignedIn ? (
+              <button
+                onClick={handleSignOut}
+                className={ns.signOutButton + " " + ns.cursorPointer}
+              >
+                Sign out
+              </button>
+            ) : (
+              <div className="hidden lg:flex items-center gap-2">
+                <button
+                  onClick={handleOpenSignIn}
+                  className={ns.loginButton + " " + ns.cursorPointer}
+                >
+                  Login
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
     </header>
@@ -81,3 +244,18 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+function CenterNavItem({ to, icon, label }) {
+  return (
+    <navLink
+      to={to}
+      end
+      className={({ isActive }) =>
+        `nav-item ${isActive ? "active" : ""}${ns.centerNavItemBase} ${isActive ? ns.centerNavItemActive : ns.centerNavItemInactive}`
+      }
+    >
+      <span>{icon}</span>
+      <span className="font-medium">{label}</span>
+    </navLink>
+  );
+}
