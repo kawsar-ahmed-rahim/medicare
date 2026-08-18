@@ -1,6 +1,17 @@
 import { navbarStyles as ns } from "../assets/dummyStyles.js";
 import logoImg from "../assets/logo.png";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  Home,
+  UserPlus,
+  Users,
+  Calendar,
+  Grid,
+  PlusSquare,
+  List,
+  X,
+  Menu,
+} from "lucide-react";
 import {
   useState,
   useEffect,
@@ -8,7 +19,7 @@ import {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useClerk, useAuth, useUser } from "@clerk/clerk-react";
+import { useClerk, useAuth, useUser } from "@clerk/react";
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const navInnerRef = useRef(null);
@@ -18,7 +29,7 @@ const Navbar = () => {
   // clerk
   const clerk = useClerk?.();
   const { getToken, isLoaded: authLoaded } = useAuth();
-  const { isSignedIn, user, isLoaded: userLoaded } = useUser();
+  const { isSignedIn, isLoaded: userLoaded } = useUser();
 
   const moveIndicator = useCallback(() => {
     const container = navInnerRef.current;
@@ -113,13 +124,10 @@ const Navbar = () => {
       }
     };
     storeToken();
-    return (
-      () => {
-        mounted = false;
-      },
-      [isSignedIn, authLoaded, userLoaded, getToken]
-    );
-  });
+    return () => {
+      mounted = false;
+    };
+  }, [isSignedIn, authLoaded, userLoaded, getToken]);
 
   // to open clerk login box
   const handleOpenSignIn = () => {
@@ -156,7 +164,7 @@ const Navbar = () => {
       <nav className={ns.navContainer}>
         <div className={ns.flexContainer}>
           <div className={ns.logoContainer}>
-            <img src={logoImg} alt="img" srcset="" className={ns.logoImage} />
+            <img src={logoImg} alt="img" className={ns.logoImage} />
             <Link to="/">
               <div className={ns.logoLink}>Medicare</div>
               <div className={ns.logoSubtext}>Healthcare Solutions</div>
@@ -354,7 +362,7 @@ function CenterNavItem({ to, icon, label }) {
 
 function MobileItem({ to, icon, label, onClick }) {
   return (
-    <navLink
+    <NavLink
       to={to}
       onClick={onClick}
       className={({ isActive }) =>
@@ -363,6 +371,6 @@ function MobileItem({ to, icon, label, onClick }) {
     >
       {icon}
       <span className="font-medium text-sm">{label}</span>
-    </navLink>
+    </NavLink>
   );
 }
