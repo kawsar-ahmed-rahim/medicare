@@ -1,6 +1,6 @@
 import express from 'express';
 import { clerkMiddleware, requireAuth } from '@clerk/express'
-import { cancelAppointment, confirmPayment, createAppointment, getAppointmentByPatient, getAppointments, getAppointmentsByDoctor, getRegisteredUserCount, getStats, updateAppointment } from '../controllers/appointmentController';
+import { cancelAppointment, confirmPayment, createAppointment, getAppointmentByPatient, getAppointments, getAppointmentsByDoctor, getRegisteredUserCount, getStats, updateAppointment } from '../controllers/appointmentController.js';
 
 const appointmentRouter = express.Router();
 
