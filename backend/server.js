@@ -6,7 +6,7 @@ import { clerkMiddleware } from "@clerk/express";
 import { connectDB } from "./config/db.js";
 import doctorRouter from "./routes/doctorRouter.js";
 import serviceRouter from "./routes/serviceRouter.js";
-import appointmentRouter from "./routes/appointmentRouter";
+import appointmentRouter from "./routes/appointmentRouter.js";
 import serviceAppointmentRouter from "./routes/serviceAppointmentRouter.js";
 import { Error } from "mongoose";
 

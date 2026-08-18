@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
-const appointmentSchema = new mongoose.Schema({
-    owner: {type: String, required: true, index: true},
-    createBy: {type: String, default: null, index: true},
+const appointmentSchema = new mongoose.Schema(
+  {
+    owner: { type: String, required: true, index: true },
+    createBy: { type: String, default: null, index: true },
 
-        patientName: { type: String, required: true, trim: true },
+    patientName: { type: String, required: true, trim: true },
     mobile: { type: String, required: true, trim: true },
     age: { type: Number, default: null },
     gender: { type: String, default: "" },
@@ -55,11 +56,15 @@ const appointmentSchema = new mongoose.Schema({
       meta: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
     sessionId: { type: String, default: null, index: true },
-    paidAt: { type: Date, default: null }, 
-}, {
-    timestamps: true
-})
+    paidAt: { type: Date, default: null },
+  },
+  {
+    timestamps: true,
+  },
+);
 
-const appointment = mongoose.models.Appointment || mongoose.model("Appointment", appointmentSchema);
+const appointment =
+  mongoose.models.Appointment ||
+  mongoose.model("Appointment", appointmentSchema);
 
-export default Appointment;
+export default appointment;

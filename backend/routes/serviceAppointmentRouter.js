@@ -12,7 +12,7 @@ import {
   cancelServiceAppointment,
 } from "./../controllers/serviceAppointmentController.js";
 
-const serviceAppointmentRouter = express.Router;
+const serviceAppointmentRouter = express.Router();
 
 serviceAppointmentRouter.get("/", getServiceAppointments);
 serviceAppointmentRouter.get("/confirm", confirmServicePayment);

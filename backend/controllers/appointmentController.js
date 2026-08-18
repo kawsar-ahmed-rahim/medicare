@@ -1,7 +1,7 @@
-import Appointment from "../models/Appointment.js";
+import Appointment from "../models/Appoinment.js";
 import Doctor from "../models/Doctor.js";
 import dotenv from "dotenv";
-import stripe from "stripe";
+import Stripe from "stripe";
 import { getAuth } from "@clerk/express";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 dotenv.config();
