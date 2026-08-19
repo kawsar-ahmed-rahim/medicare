@@ -13,7 +13,7 @@ import { Error } from "mongoose";
 const app = express();
 const port = 4000;
 
-const allowOrigin = ["http://localhost:5173/", "http://localhost:5174/"];
+const allowOrigin = ["http://localhost:5173", "http://localhost:5174"];
 
 //middlewares
 app.use(
