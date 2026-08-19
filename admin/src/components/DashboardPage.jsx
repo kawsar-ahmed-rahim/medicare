@@ -389,8 +389,15 @@ function StatCard({ icon, label, value }) {
 
 function MobileDoctorCard({d}) {
     return (
-        <div className="">
-            <div className="">
+        <div className={s.mobileDoctorCard}>
+            <div className={s.mobileDoctorHeader}>
+                <div className="flex items-center gap-3">
+                    <img src={d.image} alt={d.name} className={s.mobileDoctorImage} />
+                    <div>
+                        <div className={s.mobileDoctorName}>{d.name}</div>
+                        <div className={s.mobileDoctorSpecialization}>{d.specialization}</div>
+                    </div>
+                </div>
                 <div className=""></div>
             </div>
         </div>
