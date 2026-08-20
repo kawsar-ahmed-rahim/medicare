@@ -5,7 +5,7 @@ import {
   UserRoundCheck,
   Users,
   XCircle,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { dashboardStyles as s } from "../assets/dummyStyles";
@@ -360,11 +360,23 @@ const DashboardPage = () => {
           </div>
           <div className={s.mobileDoctorContainer}>
             <div className={s.mobileDoctorGrid}>
-                {visibleDoctors.map((d)=>(
-                    <MobileDoctorCard key={d.id} d={d}/>
-                ))}
+              {visibleDoctors.map((d) => (
+                <MobileDoctorCard key={d.id} d={d} />
+              ))}
             </div>
           </div>
+          {filteredDoctors.length > INITIAL_COUNT && (
+            <div className={s.showMoreContainer}>
+              <button
+                onClick={() => setShowAll((s) => !s)}
+                className={s.showMoreButton + " " + s.cursorPointer}
+              >
+                {showAll
+                  ? "Show less"
+                  : `Show more (${filteredDoctors.length - INITIAL_COUNT})`}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -387,19 +399,45 @@ function StatCard({ icon, label, value }) {
   );
 }
 
-function MobileDoctorCard({d}) {
-    return (
-        <div className={s.mobileDoctorCard}>
-            <div className={s.mobileDoctorHeader}>
-                <div className="flex items-center gap-3">
-                    <img src={d.image} alt={d.name} className={s.mobileDoctorImage} />
-                    <div>
-                        <div className={s.mobileDoctorName}>{d.name}</div>
-                        <div className={s.mobileDoctorSpecialization}>{d.specialization}</div>
-                    </div>
-                </div>
-                <div className=""></div>
+function MobileDoctorCard({ d }) {
+  return (
+    <div className={s.mobileDoctorCard}>
+      <div className={s.mobileDoctorHeader}>
+        <div className="flex items-center gap-3">
+          <img src={d.image} alt={d.name} className={s.mobileDoctorImage} />
+          <div>
+            <div className={s.mobileDoctorName}>{d.name}</div>
+            <div className={s.mobileDoctorSpecialization}>
+              {d.specialization}
             </div>
+          </div>
         </div>
-    )
+        <div className={s.mobileDoctorFee}>$ {d.fee}</div>
+      </div>
+      <div className={s.mobileStatsGrid}>
+        <div>
+          <div className={s.mobileStatLabel}>Appts</div>
+          <div className={s.mobileStatValue}>{d.appointments.total}</div>
+        </div>
+
+        <div>
+          <div className={s.mobileStatLabel}>Done</div>
+          <div className={s.mobileStatValue + " " + s.textEmerald600}>
+            {d.appointments.completed}
+          </div>
+        </div>
+
+        <div>
+          <div className={s.mobileStatLabel}>Cancel</div>
+          <div className={s.mobileStatValue + " " + s.textRose500}>
+            {d.appointments.canceled}
+          </div>
+        </div>
+      </div>
+      <div className={s.mobileEarningsContainer}>
+        <div>Earned</div>
+        <div className="font-semibold">$ {d.earnings.toLocaleString()}</div>
+      </div>
+    </div>
+  );
 }
