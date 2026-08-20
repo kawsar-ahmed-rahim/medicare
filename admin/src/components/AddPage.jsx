@@ -92,8 +92,7 @@ const AddPage = () => {
       try {
         URL.revokeObjectURL(form.imagePreview);
       } catch (err) {
-                    console.log(err);
-
+        console.log(err);
       }
     }
     setForm((p) => ({
@@ -248,8 +247,7 @@ const AddPage = () => {
         try {
           localStorage.setItem("token", data.token);
         } catch (err) {
-                        console.log(err);
-
+          console.log(err);
         }
       }
 
@@ -264,8 +262,7 @@ const AddPage = () => {
         try {
           URL.revokeObjectURL(form.imagePreview);
         } catch (err) {
-            console.log(err);
-            
+          console.log(err);
         }
       }
 
@@ -292,8 +289,7 @@ const AddPage = () => {
         try {
           fileInputRef.current.value = "";
         } catch (err) {
-                        console.log(err);
-
+          console.log(err);
         }
       }
 
@@ -334,15 +330,122 @@ const AddPage = () => {
 
               {form.imagePreview && (
                 <div className="relative group">
-                    <img src={form.imagePreview} alt="preview" className={s.imagePreview}/>
-                    <button type="button" onClick={removeImage} className={s.removeImageButton + " " + s.cursorPointer}>
-                        <XCircle size={14}/>
-                    </button>
+                  <img
+                    src={form.imagePreview}
+                    alt="preview"
+                    className={s.imagePreview}
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className={s.removeImageButton + " " + s.cursorPointer}
+                  >
+                    <XCircle size={14} />
+                  </button>
                 </div>
               )}
             </div>
           </div>
-          <input placeholder="Full Name" className={s.inputBase} value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}/>
+          <input
+            placeholder="Full Name"
+            className={s.inputBase}
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <input
+            placeholder="Specialization"
+            className={s.inputBase}
+            value={form.specialization}
+            onChange={(e) => setForm({ ...form, specialization: e.target.value })}
+          />
+          <input
+            placeholder="Location"
+            className={s.inputBase}
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+          />
+          <input
+            placeholder="Experience"
+            className={s.inputBase}
+            value={form.experience}
+            onChange={(e) => setForm({ ...form, experience: e.target.value })}
+          />
+          <input
+            placeholder="Qualification"
+            className={s.inputBase}
+            value={form.qualification}
+            onChange={(e) => setForm({ ...form, qualification: e.target.value })}
+          />
+          <input
+            placeholder="Consultation fee"
+            className={s.inputBase}
+            value={form.fee}
+            onChange={(e) => setForm({ ...form, fee: e.target.value })}
+          />
+           <input
+            className={s.inputBase}
+            placeholder="Rating (1.0 - 5.0)"
+            type="number"
+            min={1}
+            max={5}
+            step={0.1}
+            value={form.rating}
+            onChange={(e) => {
+              const v = e.target.value;
+
+              // allow clearing
+              if (v === "") {
+                setForm((p) => ({ ...p, rating: "" }));
+                return;
+              }
+
+              const n = Number(v);
+              if (Number.isNaN(n)) return;
+
+              // clamp between 1 and 5
+              const clamped = Math.max(1, Math.min(5, n));
+
+              // keep only 1 decimal place
+              const fixed = Math.round(clamped * 10) / 10;
+
+              setForm((p) => ({ ...p, rating: fixed.toString() }));
+            }}
+            onBlur={() => {
+              // force 1 decimal place on blur
+              setForm((p) => {
+                if (!p.rating) return p;
+                const n = Number(p.rating);
+                if (Number.isNaN(n)) return { ...p, rating: "" };
+
+                const clamped = Math.max(1, Math.min(5, n));
+                return { ...p, rating: clamped.toFixed(1) };
+              });
+            }}
+          />
+          <input
+            placeholder="patients"
+            className={s.inputBase}
+            value={form.patients}
+            onChange={(e) => setForm({ ...form, patients: e.target.value })}
+          />
+          <input
+            placeholder="Success Rate"
+            className={s.inputBase}
+            value={form.success}
+            onChange={(e) => setForm({ ...form, success: e.target.value })}
+          />
+          <input
+            placeholder="Doctor Email"
+            className={s.inputBase}
+            value={form.email}
+            type="email"
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <div className="relative">
+            <input type={showPassword ? "text" : "password"} className={s.inputBase + " " + s.inputWithIcon} placeholder="doctor password" value={form.password} onChange={(e)=> setForm({
+                ...form,password: e.target.value
+            })} />
+            <button type="button" onClick={()=> setShowPassword((s)=> !s)} className={s.passwordToggleButton + " " + s.cursorPointer}>{showPassword ? <Eye size={18}/> : <EyeClosed size={18} /></button></div>
         </form>
       </div>
     </div>
