@@ -1,4 +1,13 @@
-import { User, XCircle, Eye, EyeClosed } from "lucide-react";
+import {
+  User,
+  XCircle,
+  Eye,
+  EyeOff,
+  Calendar,
+  Plus,
+  Trash2,
+  CheckCircle,
+} from "lucide-react";
 import { doctorDetailStyles as s } from "../assets/dummyStyles";
 import { useState, useRef, useEffect } from "react";
 // helper functions
@@ -356,7 +365,9 @@ const AddPage = () => {
             placeholder="Specialization"
             className={s.inputBase}
             value={form.specialization}
-            onChange={(e) => setForm({ ...form, specialization: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, specialization: e.target.value })
+            }
           />
           <input
             placeholder="Location"
@@ -374,7 +385,9 @@ const AddPage = () => {
             placeholder="Qualification"
             className={s.inputBase}
             value={form.qualifications}
-            onChange={(e) => setForm({ ...form, qualifications: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, qualifications: e.target.value })
+            }
           />
           <input
             placeholder="Consultation fee"
@@ -382,7 +395,7 @@ const AddPage = () => {
             value={form.fee}
             onChange={(e) => setForm({ ...form, fee: e.target.value })}
           />
-           <input
+          <input
             className={s.inputBase}
             placeholder="Rating (1.0 - 5.0)"
             type="number"
@@ -442,21 +455,42 @@ const AddPage = () => {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <div className="relative">
-            <input type={showPassword ? "text" : "password"} className={s.inputBase + " " + s.inputWithIcon} placeholder="doctor password" value={form.password} onChange={(e)=> setForm({
-                ...form,password: e.target.value
-            })} />
-            <button type="button" onClick={()=> setShowPassword((s)=> !s)} className={s.passwordToggleButton + " " + s.cursorPointer}>{showPassword ? <Eye size={18}/> : <EyeClosed size={18} /></button></div>
-            <select className={s.inputBase} value={form.availability} onChange={(e) => setForm({ ...form, availability: e.target.value})}>
-              <option value="Available">Available</option>
-               <option value="Unavailable">Unavailable</option>
-            </select>
-<textarea
-  className={s.textareaBase + " md:col-span-2"}
-  rows={3}
-  placeholder="About Doctor"
-  value={form.about}
-  onChange={(e) => setForm({ ...form, about: e.target.value })}
-/>                <div className={s.scheduleContainer + " md:col-span-2"}>
+            <input
+              type={showPassword ? "text" : "password"}
+              className={s.inputBase + " " + s.inputWithIcon}
+              placeholder="doctor password"
+              value={form.password}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  password: e.target.value,
+                })
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className={s.passwordToggleButton + " " + s.cursorPointer}
+            >
+              {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
+          </div>
+          <select
+            className={s.inputBase}
+            value={form.availability}
+            onChange={(e) => setForm({ ...form, availability: e.target.value })}
+          >
+            <option value="Available">Available</option>
+            <option value="Unavailable">Unavailable</option>
+          </select>
+          <textarea
+            className={s.textareaBase + " md:col-span-2"}
+            rows={3}
+            placeholder="About Doctor"
+            value={form.about}
+            onChange={(e) => setForm({ ...form, about: e.target.value })}
+          />{" "}
+          <div className={s.scheduleContainer + " md:col-span-2"}>
             <div className={s.scheduleHeader}>
               <Calendar className="text-emerald-600" />
               <p className={s.scheduleTitle}>Add Schedule Slots</p>
@@ -534,19 +568,32 @@ const AddPage = () => {
               ))}
             </div>
           </div>
-
-    <div className={s.submitButtonContainer}>
-      <button type="submit" disabled={loading} className={s.submitButton + " " + s.cursorPointer + " " + (loading ? s.submitButtonDisabled : s.submitButtonEnabled)}>{loading ? "Adding..." : "Add Doctor to Team"}</button>
-    </div>
+          <div className={s.submitButtonContainer}>
+            <button
+              type="submit"
+              disabled={loading}
+              className={
+                s.submitButton +
+                " " +
+                s.cursorPointer +
+                " " +
+                (loading ? s.submitButtonDisabled : s.submitButtonEnabled)
+              }
+            >
+              {loading ? "Adding..." : "Add Doctor to Team"}
+            </button>
+          </div>
         </form>
       </div>
-
 
       {/* TOAST */}
       {toast.show && (
         <div
-          className={s.toastContainer + " " + 
-            (toast.type === "success" ? s.toastSuccess : s.toastError)}
+          className={
+            s.toastContainer +
+            " " +
+            (toast.type === "success" ? s.toastSuccess : s.toastError)
+          }
         >
           {toast.type === "success" ? (
             <CheckCircle size={22} />
@@ -561,14 +608,19 @@ const AddPage = () => {
       <div className={s.doctorListContainer}>
         {doctorList.length ? (
           <div className={s.doctorListGrid}>
-            {doctorList.map((d)=> (
+            {doctorList.map((d) => (
               <div className={s.doctorCard} key={d.id || d._id}>
                 <div className={s.doctorCardContent}>
-                  <img src={d.imageUrl || d.imagePreview} alt={d.name} className={s.doctorImage}/>
+                  <img
+                    src={d.imageUrl || d.imagePreview}
+                    alt={d.name}
+                    className={s.doctorImage}
+                  />
                   <div>
                     <div className={s.doctorName}>{d.name}</div>
-                                        <div className={s.doctorSpecialization}>{d.specialization}</div>
-
+                    <div className={s.doctorSpecialization}>
+                      {d.specialization}
+                    </div>
                   </div>
                 </div>
               </div>
