@@ -1,4 +1,4 @@
-import { User, XCircle } from "lucide-react";
+import { User, XCircle, Eye, EyeClosed } from "lucide-react";
 import { doctorDetailStyles as s } from "../assets/dummyStyles";
 import { useState, useRef, useEffect } from "react";
 // helper functions
@@ -373,8 +373,8 @@ const AddPage = () => {
           <input
             placeholder="Qualification"
             className={s.inputBase}
-            value={form.qualification}
-            onChange={(e) => setForm({ ...form, qualification: e.target.value })}
+            value={form.qualifications}
+            onChange={(e) => setForm({ ...form, qualifications: e.target.value })}
           />
           <input
             placeholder="Consultation fee"
@@ -446,7 +446,137 @@ const AddPage = () => {
                 ...form,password: e.target.value
             })} />
             <button type="button" onClick={()=> setShowPassword((s)=> !s)} className={s.passwordToggleButton + " " + s.cursorPointer}>{showPassword ? <Eye size={18}/> : <EyeClosed size={18} /></button></div>
+            <select className={s.inputBase} value={form.availability} onChange={(e) => setForm({ ...form, availability: e.target.value})}>
+              <option value="Available">Available</option>
+               <option value="Unavailable">Unavailable</option>
+            </select>
+<textarea
+  className={s.textareaBase + " md:col-span-2"}
+  rows={3}
+  placeholder="About Doctor"
+  value={form.about}
+  onChange={(e) => setForm({ ...form, about: e.target.value })}
+/>                <div className={s.scheduleContainer + " md:col-span-2"}>
+            <div className={s.scheduleHeader}>
+              <Calendar className="text-emerald-600" />
+              <p className={s.scheduleTitle}>Add Schedule Slots</p>
+            </div>
+
+            <div className={s.scheduleInputsContainer}>
+              <input
+                type="date"
+                value={slotDate}
+                min={today}
+                onChange={(e) => setSlotDate(e.target.value)}
+                className={s.scheduleDateInput}
+              />
+
+              <select
+                value={slotHour}
+                onChange={(e) => setSlotHour(e.target.value)}
+                className={s.scheduleTimeSelect}
+              >
+                <option value="">Hour</option>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <option key={i} value={String(i + 1)}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={slotMinute}
+                onChange={(e) => setSlotMinute(e.target.value)}
+                className={s.scheduleTimeSelect}
+              >
+                {Array.from({ length: 60 }).map((_, i) => (
+                  <option key={i} value={String(i).padStart(2, "0")}>
+                    {String(i).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={slotAmpm}
+                onChange={(e) => setSlotAmpm(e.target.value)}
+                className={s.scheduleTimeSelect}
+              >
+                <option>AM</option>
+                <option>PM</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={addSlotToForm}
+                className={s.addSlotButton + " " + s.cursorPointer}
+              >
+                <Plus size={18} /> Add Slot
+              </button>
+            </div>
+
+            <div className={s.slotsGrid}>
+              {getFlatSlots(form.schedule).map(({ date, time }) => (
+                <div
+                  key={date + time}
+                  className={s.slotItem + " " + s.cursorPointer}
+                >
+                  <span>
+                    {formatDateISO(date)} — {time}
+                  </span>
+                  <button
+                    onClick={() => removeSlot(date, time)}
+                    className="text-rose-500"
+                    aria-label={`Remove slot ${date} ${time}`}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+    <div className={s.submitButtonContainer}>
+      <button type="submit" disabled={loading} className={s.submitButton + " " + s.cursorPointer + " " + (loading ? s.submitButtonDisabled : s.submitButtonEnabled)}>{loading ? "Adding..." : "Add Doctor to Team"}</button>
+    </div>
         </form>
+      </div>
+
+
+      {/* TOAST */}
+      {toast.show && (
+        <div
+          className={s.toastContainer + " " + 
+            (toast.type === "success" ? s.toastSuccess : s.toastError)}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle size={22} />
+          ) : (
+            <XCircle size={22} />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* simple overview of added doctor */}
+      <div className={s.doctorListContainer}>
+        {doctorList.length ? (
+          <div className={s.doctorListGrid}>
+            {doctorList.map((d)=> (
+              <div className={s.doctorCard} key={d.id || d._id}>
+                <div className={s.doctorCardContent}>
+                  <img src={d.imageUrl || d.imagePreview} alt={d.name} className={s.doctorImage}/>
+                  <div>
+                    <div className={s.doctorName}>{d.name}</div>
+                                        <div className={s.doctorSpecialization}>{d.specialization}</div>
+
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={s.emptyState}>No Doctor Yet</p>
+        )}
       </div>
     </div>
   );
