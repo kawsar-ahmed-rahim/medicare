@@ -185,10 +185,83 @@ const ListPage = () => {
   
 
   return (
-    <div>
+    <div className={doctorListStyles.container}>
+      <header className={doctorListStyles.headerContainer}>
+        <div className={doctorListStyles.headerTopSection}>
+          <div className={doctorListStyles.headerIconContainer}>
+            <div className={doctorStyles.headerIcon}>
+              <Users size={20} className={doctorStyles.headerIconSvg}/>
+            </div>
+            <div>
+              <h1 className={doctorListStyles.headerTitle}>Find a Doctor</h1>
+            </div>
+            <p className={doctorListStyles.headerSubtitle}>search by name or specialization</p>
+          </div>
+
+          <div className={doctorListStyles.headerSearchContainer}>
+            <div className={doctorListStyles.searchBox}>
+              <Search size={16} className={doctorListStyles.searchIcon}/>
+              <input value={query} onChange={(e)=> setQuery(e.target.value)} placeholder="search doctors, specialization" className={doctorListStyles.searchInput}/>
+            </div>
+            <button onClick={()=>{
+              setQuery("");
+              setExpanded(null);
+              setShowAll(false);
+              setFilterStatus("all");
+            }} className={doctorListStyles.clearButton}>Clear</button>
+          </div>
+        </div>
+
+        <div className={doctorStyles.filterContainer}>
+          <button onClick={()=> applyStatusFilter("available")} className={doctorListStyles.filterButton(
+            filterStatus === "available", "emerald"
+          )}>Available</button>
+          
+           <button onClick={()=> applyStatusFilter("unavailable")} className={doctorListStyles.filterButton(
+            filterStatus === "unavailable", "red"
+          )}>Unavailable</button></div>
+      </header>
+
+      <main className={doctorListStyles.gridContainer}>
+        {loading && (
+          <div className={doctorStyles.loadingContainer}>Loading Doctors....</div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div className={doctorStyles.noResultsContainer}>No doctors match your search</div>
+        )}
+
+        {displayed.map((doc) => {
+          const id = doc._id || doc.id;
+          const isOpen = expanded === id;
+          const isAvailable = doc.availability === "Available";
+
+          const scheduleMap = buildScheduleMap(doc.schedule || {});
+          const sortedDates = getSortedScheduleDates(scheduleMap)
+        })};
+
+        return (
+          <article className={doctorListStyles.article} key={id}>
+            <div className={doctorListStyles.articleContent}>
+               <img src={doc.imageUrl || doc.image || ""} alt={doc.name} className={doctorListStyles.doctorImage} />
+               <div className={doctorStyles.doctorInfoContainer}>
+                <div className={doctorStyles.doctorHeader}>
+                  <div className="min-w-0 w-full">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className={doctorStyles.doctorName}>{doc.name}</h3>
+                      <span className={doctorStyles.availabilityBadge()}></span>
+                    </div>
+                  </div>
+                </div>
+               </div>
+               </div>
+           </article>
+        )
+
+      </main>
     
     </div>
   )
 }
 
-export default ListPage
+export default ListPage;
