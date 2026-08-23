@@ -249,9 +249,28 @@ const ListPage = () => {
                   <div className="min-w-0 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className={doctorStyles.doctorName}>{doc.name}</h3>
-                      <span className={doctorStyles.availabilityBadge()}></span>
+                      <span className={doctorStyles.availabilityBadge(isAvailable)}>
+                        <span className={doctorStyles.availabilityDot(isAvailable)} />
+                        {isAvailable ? "Available" : "Unavailable"}
+                      </span>
+                    </div>
+                    <div className={doctorListStyles.doctorDetails}>
+                      {doc.specialization} . {doc.experience} years 
                     </div>
                   </div>
+
+                  <div className={doctorListStyles.ratingContainer}>
+                    <div className={doctorListStyles.rating}><Star size={14} />{doc.rating}</div>
+                    <button onClick={() => toggle(id)} className={doctorStyles.toggleButton(isOpen)}><EyeClosed size={18}/></button>
+                  </div>
+                </div>
+
+                <div className={doctorStyles.statsContainer}>
+                  <div className={doctorListStyles.statsLabel}>Patients</div>
+                    <div className={doctorListStyles.statsValue}><Users size={14} /> {doc.patients}
+                  </div>
+
+                  <div className={doctorListStyles.actionContainer}><div className="flex items-center gap-2"><button></button></div></div>
                 </div>
                </div>
                </div>
