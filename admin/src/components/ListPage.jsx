@@ -270,7 +270,13 @@ const ListPage = () => {
                     <div className={doctorListStyles.statsValue}><Users size={14} /> {doc.patients}
                   </div>
 
-                  <div className={doctorListStyles.actionContainer}><div className="flex items-center gap-2"><button></button></div></div>
+                  <div className={doctorListStyles.actionContainer}><div className="flex items-center gap-2"><button onClick={() => removeDoctor(id)} className={doctorListStyles.deleteButton}><Trash2 size={14} />Delete</button>
+                  
+                  <div className={doctorListStyles.feesLabel}>Fees:</div>
+                  <div className={doctorListStyles.feesValue}><Dollar /> {doc.fee}</div>
+                  <div></div>
+                  
+                  </div></div>
                 </div>
                </div>
                </div>
