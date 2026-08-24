@@ -270,18 +270,105 @@ const ListPage = () => {
                     <div className={doctorListStyles.statsValue}><Users size={14} /> {doc.patients}
                   </div>
 
-                  <div className={doctorListStyles.actionContainer}><div className="flex items-center gap-2"><button onClick={() => removeDoctor(id)} className={doctorListStyles.deleteButton}><Trash2 size={14} />Delete</button>
+                  <div className={doctorListStyles.actionContainer}>
+                    <div className="flex items-center gap-2"><button onClick={() => removeDoctor(id)} className={doctorListStyles.deleteButton}><Trash2 size={14} />Delete</button>
                   
                   <div className={doctorListStyles.feesLabel}>Fees:</div>
                   <div className={doctorListStyles.feesValue}><Dollar /> {doc.fee}</div>
                   <div></div>
                   
-                  </div></div>
+                  
                 </div>
                </div>
                </div>
+               
+              <div
+                className={doctorListStyles.expandableContent}
+                style={{
+                  maxHeight: isOpen ? (isMobileScreen ? 320 : 600) : 0,
+                  transition:
+                    "max-height 420ms cubic-bezier(.2,.9,.2,1), padding 220ms ease",
+                  paddingTop: isOpen ? 16 : 0,
+                  paddingBottom: isOpen ? 16 : 0,
+                }}
+              >
+                {isOpen && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className={doctorListStyles.aboutSection}>
+                      <h4 className={doctorListStyles.aboutHeading}>About</h4>
+                      <p className={doctorListStyles.aboutText}>{doc.about}</p>
+
+                      <div className="mt-4">
+                        <div className={doctorListStyles.qualificationsHeading}>
+                          Qualifications
+                        </div>
+                        <div className={doctorListStyles.qualificationsText}>
+                          {doc.qualifications}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className={doctorListStyles.scheduleHeading}>
+                          Schedule
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {sortedDates.map((date) => {
+                            const slots = scheduleMap[date] || [];
+                            return (
+                              <div key={date} className="min-w-full md:min-w-0">
+                                <div className={doctorListStyles.scheduleDate}>
+                                  {formatDateISO(date)}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  {slots.map((s, i) => (
+                                    <span
+                                      key={i}
+                                      className={doctorListStyles.scheduleSlot}
+                                    >
+                                      {s}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <aside className={doctorListStyles.statsSidebar}>
+                      <div className={doctorListStyles.statsItemHeading}>
+                        Success
+                      </div>
+                      <div className={doctorListStyles.statsItemValue}>
+                        {doc.success}%
+                      </div>
+
+                      <div className={doctorListStyles.statsItemHeading}>
+                        Patients
+                      </div>
+                      <div className={doctorListStyles.statsItemValue}>
+                        {doc.patients}
+                      </div>
+
+                      <div className={doctorListStyles.statsItemHeading}>
+                        Location
+                      </div>
+                      <div className={doctorListStyles.locationValue}>
+                        {doc.location}
+                      </div>
+                    </aside>
+                  </div>
+                )}
+              </div>
+
+
            </article>
-        )
+        )})}
+
+        {filtered.length > 6 && (
+          <div className={doctorListStyles.showMoreContainer}><button onClick={()=> setShownAll((s)=> !s)} className={doctorListStyles.showMoreButton}>{showAll ? "Show Less" : `Show more (${filtered.length - 4})`}</button></div>
+        )}
 
       </main>
     
