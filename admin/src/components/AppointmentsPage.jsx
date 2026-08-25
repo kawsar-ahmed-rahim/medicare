@@ -35,7 +35,6 @@ function dateTimeFromSlot(slot) {
 
 const AppointmentsPage = () => {
    const isAdmin = true;
-
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -369,7 +368,7 @@ return (
           </main>
         )}
         {sortedFiltered.length > 8 && (
-          <div className="flex justify-center mt-4"><button>
+          <div className="flex justify-center mt-4"><button onClick={()=> setShowAll((s)=> !s)} className={pageStyles.showMoreButton}>{showAll ? "Show Less" : `show more (${sortedFiltered.length - 8})`}
             </button></div>
         )}
       </div>
