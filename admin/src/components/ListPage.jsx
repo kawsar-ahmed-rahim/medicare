@@ -1,4 +1,15 @@
+import { useState, useEffect, useMemo } from "react";
+import {
+  Users,
+  Search,
+  Star,
+  Eye,
+  EyeClosed,
+  Trash2,
+  DollarSign,
+} from "lucide-react";
 import { doctorListStyles } from "../assets/dummyStyles";
+
 // helper function
 function formatDateISO(iso) {
   if (!iso || typeof iso !== "string") return iso;
@@ -69,8 +80,8 @@ function getSortedScheduleDates(scheduleLike) {
 }
 
 const ListPage = () => {
-    const API_BASE = "http://localhost:4000";
-    const [doctors, setDoctors] = useState([]);
+  const API_BASE = "http://localhost:4000";
+  const [doctors, setDoctors] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -87,7 +98,8 @@ const ListPage = () => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  // to fetch doctors fro server
+
+  // to fetch doctors from server
   async function fetchDoctors() {
     setLoading(true);
     try {
@@ -98,8 +110,8 @@ const ListPage = () => {
         const list = Array.isArray(body.data)
           ? body.data
           : Array.isArray(body.doctors)
-          ? body.doctors
-          : [];
+            ? body.doctors
+            : [];
         const normalized = list.map((d) => {
           const scheduleMap = buildScheduleMap(d.schedule || {});
           return {
@@ -123,18 +135,18 @@ const ListPage = () => {
   useEffect(() => {
     fetchDoctors();
   }, []);
+
   // to filter doctors
-  
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = doctors;
     if (filterStatus === "available") {
       list = list.filter(
-        (d) => (d.availability || "").toString().toLowerCase() === "available"
+        (d) => (d.availability || "").toString().toLowerCase() === "available",
       );
     } else if (filterStatus === "unavailable") {
       list = list.filter(
-        (d) => (d.availability || "").toString().toLowerCase() !== "available"
+        (d) => (d.availability || "").toString().toLowerCase() !== "available",
       );
     }
     if (!q) return list;
@@ -145,8 +157,9 @@ const ListPage = () => {
       );
     });
   }, [doctors, query, filterStatus]);
+
   // to show doctors according to filter
-    const displayed = useMemo(() => {
+  const displayed = useMemo(() => {
     if (showAll) return filtered;
     return filtered.slice(0, 6);
   }, [filtered, showAll]);
@@ -154,8 +167,9 @@ const ListPage = () => {
   function toggle(id) {
     setExpanded((prev) => (prev === id ? null : id));
   }
+
   // to delete any doctor
-   async function removeDoctor(id) {
+  async function removeDoctor(id) {
     const doc = doctors.find((d) => (d._id || d.id) === id);
     if (!doc) return;
     const ok = window.confirm(`Delete ${doc.name}? This cannot be undone.`);
@@ -177,58 +191,88 @@ const ListPage = () => {
       alert("Network error deleting doctor");
     }
   }
+
   // shows all doctors or the filtered ones
   function applyStatusFilter(status) {
     setFilterStatus((prev) => (prev === status ? "all" : status));
     setExpanded(null);
     setShowAll(false);
-  
+  }
 
   return (
     <div className={doctorListStyles.container}>
       <header className={doctorListStyles.headerContainer}>
         <div className={doctorListStyles.headerTopSection}>
           <div className={doctorListStyles.headerIconContainer}>
-            <div className={doctorStyles.headerIcon}>
-              <Users size={20} className={doctorStyles.headerIconSvg}/>
+            <div className={doctorListStyles.headerIcon}>
+              <Users size={20} className={doctorListStyles.headerIconSvg} />
             </div>
             <div>
               <h1 className={doctorListStyles.headerTitle}>Find a Doctor</h1>
             </div>
-            <p className={doctorListStyles.headerSubtitle}>search by name or specialization</p>
+            <p className={doctorListStyles.headerSubtitle}>
+              search by name or specialization
+            </p>
           </div>
 
           <div className={doctorListStyles.headerSearchContainer}>
             <div className={doctorListStyles.searchBox}>
-              <Search size={16} className={doctorListStyles.searchIcon}/>
-              <input value={query} onChange={(e)=> setQuery(e.target.value)} placeholder="search doctors, specialization" className={doctorListStyles.searchInput}/>
+              <Search size={16} className={doctorListStyles.searchIcon} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search doctors, specialization"
+                className={doctorListStyles.searchInput}
+              />
             </div>
-            <button onClick={()=>{
-              setQuery("");
-              setExpanded(null);
-              setShowAll(false);
-              setFilterStatus("all");
-            }} className={doctorListStyles.clearButton}>Clear</button>
+            <button
+              onClick={() => {
+                setQuery("");
+                setExpanded(null);
+                setShowAll(false);
+                setFilterStatus("all");
+              }}
+              className={doctorListStyles.clearButton}
+            >
+              Clear
+            </button>
           </div>
         </div>
 
-        <div className={doctorStyles.filterContainer}>
-          <button onClick={()=> applyStatusFilter("available")} className={doctorListStyles.filterButton(
-            filterStatus === "available", "emerald"
-          )}>Available</button>
-          
-           <button onClick={()=> applyStatusFilter("unavailable")} className={doctorListStyles.filterButton(
-            filterStatus === "unavailable", "red"
-          )}>Unavailable</button></div>
+        <div className={doctorListStyles.filterContainer}>
+          <button
+            onClick={() => applyStatusFilter("available")}
+            className={doctorListStyles.filterButton(
+              filterStatus === "available",
+              "emerald",
+            )}
+          >
+            Available
+          </button>
+
+          <button
+            onClick={() => applyStatusFilter("unavailable")}
+            className={doctorListStyles.filterButton(
+              filterStatus === "unavailable",
+              "red",
+            )}
+          >
+            Unavailable
+          </button>
+        </div>
       </header>
 
       <main className={doctorListStyles.gridContainer}>
         {loading && (
-          <div className={doctorStyles.loadingContainer}>Loading Doctors....</div>
+          <div className={doctorListStyles.loadingContainer}>
+            Loading Doctors....
+          </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className={doctorStyles.noResultsContainer}>No doctors match your search</div>
+          <div className={doctorListStyles.noResultsContainer}>
+            No doctors match your search
+          </div>
         )}
 
         {displayed.map((doc) => {
@@ -237,55 +281,90 @@ const ListPage = () => {
           const isAvailable = doc.availability === "Available";
 
           const scheduleMap = buildScheduleMap(doc.schedule || {});
-          const sortedDates = getSortedScheduleDates(scheduleMap)
-        })};
+          const sortedDates = getSortedScheduleDates(scheduleMap);
 
-        return (
-          <article className={doctorListStyles.article} key={id}>
-            <div className={doctorListStyles.articleContent}>
-               <img src={doc.imageUrl || doc.image || ""} alt={doc.name} className={doctorListStyles.doctorImage} />
-               <div className={doctorStyles.doctorInfoContainer}>
-                <div className={doctorStyles.doctorHeader}>
-                  <div className="min-w-0 w-full">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={doctorStyles.doctorName}>{doc.name}</h3>
-                      <span className={doctorStyles.availabilityBadge(isAvailable)}>
-                        <span className={doctorStyles.availabilityDot(isAvailable)} />
-                        {isAvailable ? "Available" : "Unavailable"}
-                      </span>
+          return (
+            <article className={doctorListStyles.article} key={id}>
+              <div className={doctorListStyles.articleContent}>
+                <img
+                  src={doc.imageUrl || doc.image || "/default-doctor.png"}
+                  alt={doc.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/default-doctor.png";
+                  }}
+                  className={doctorListStyles.doctorImage}
+                />
+                <div className={doctorListStyles.doctorInfoContainer}>
+                  <div className={doctorListStyles.doctorHeader}>
+                    <div className="min-w-0 w-full">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className={doctorListStyles.doctorName}>
+                          {doc.name}
+                        </h3>
+                        <span
+                          className={doctorListStyles.availabilityBadge(
+                            isAvailable,
+                          )}
+                        >
+                          <span
+                            className={doctorListStyles.availabilityDot(
+                              isAvailable,
+                            )}
+                          />
+                          {isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+                      <div className={doctorListStyles.doctorDetails}>
+                        {doc.specialization} . {doc.experience} years
+                      </div>
                     </div>
-                    <div className={doctorListStyles.doctorDetails}>
-                      {doc.specialization} . {doc.experience} years 
+
+                    <div className={doctorListStyles.ratingContainer}>
+                      <div className={doctorListStyles.rating}>
+                        <Star size={14} />
+                        {doc.rating}
+                      </div>
+                      <button
+                        onClick={() => toggle(id)}
+                        className={doctorListStyles.toggleButton(isOpen)}
+                      >
+                        {isOpen ? <Eye size={18} /> : <EyeClosed size={18} />}
+                      </button>
                     </div>
                   </div>
 
-                  <div className={doctorListStyles.ratingContainer}>
-                    <div className={doctorListStyles.rating}><Star size={14} />{doc.rating}</div>
-                    <button onClick={() => toggle(id)} className={doctorStyles.toggleButton(isOpen)}><EyeClosed size={18}/></button>
+                  <div className={doctorListStyles.statsContainer}>
+                    <div className={doctorListStyles.statsLabel}>Patients</div>
+                    <div className={doctorListStyles.statsValue}>
+                      <Users size={14} /> {doc.patients}
+                    </div>
+
+                    <div className={doctorListStyles.actionContainer}>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => removeDoctor(id)}
+                          className={doctorListStyles.deleteButton}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+
+                        <div className={doctorListStyles.feesLabel}>Fees:</div>
+                        <div className={doctorListStyles.feesValue}>
+                          <DollarSign size={14} /> {doc.fee}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className={doctorStyles.statsContainer}>
-                  <div className={doctorListStyles.statsLabel}>Patients</div>
-                    <div className={doctorListStyles.statsValue}><Users size={14} /> {doc.patients}
-                  </div>
-
-                  <div className={doctorListStyles.actionContainer}>
-                    <div className="flex items-center gap-2"><button onClick={() => removeDoctor(id)} className={doctorListStyles.deleteButton}><Trash2 size={14} />Delete</button>
-                  
-                  <div className={doctorListStyles.feesLabel}>Fees:</div>
-                  <div className={doctorListStyles.feesValue}><Dollar /> {doc.fee}</div>
-                  <div></div>
-                  
-                  
-                </div>
-               </div>
-               </div>
-               
               <div
                 className={doctorListStyles.expandableContent}
                 style={{
                   maxHeight: isOpen ? (isMobileScreen ? 320 : 600) : 0,
+                  overflow: isOpen ? "visible" : "hidden",
                   transition:
                     "max-height 420ms cubic-bezier(.2,.9,.2,1), padding 220ms ease",
                   paddingTop: isOpen ? 16 : 0,
@@ -341,7 +420,7 @@ const ListPage = () => {
                         Success
                       </div>
                       <div className={doctorListStyles.statsItemValue}>
-                        {doc.success}%
+                        {String(doc.success ?? "").replace("%", "")}%
                       </div>
 
                       <div className={doctorListStyles.statsItemHeading}>
@@ -361,19 +440,23 @@ const ListPage = () => {
                   </div>
                 )}
               </div>
-
-
-           </article>
-        )})}
+            </article>
+          );
+        })}
 
         {filtered.length > 6 && (
-          <div className={doctorListStyles.showMoreContainer}><button onClick={()=> setShownAll((s)=> !s)} className={doctorListStyles.showMoreButton}>{showAll ? "Show Less" : `Show more (${filtered.length - 4})`}</button></div>
+          <div className={doctorListStyles.showMoreContainer}>
+            <button
+              onClick={() => setShowAll((s) => !s)}
+              className={doctorListStyles.showMoreButton}
+            >
+              {showAll ? "Show Less" : `Show more (${filtered.length - 6})`}
+            </button>
+          </div>
         )}
-
       </main>
-    
     </div>
-  )
-}
+  );
+};
 
 export default ListPage;

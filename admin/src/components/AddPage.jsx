@@ -115,13 +115,17 @@ const AddPage = () => {
     if (form.imagePreview && form.imageFile) {
       try {
         URL.revokeObjectURL(form.imagePreview);
-      } catch (err) {}
+      } catch (err) {
+        console.log(err);
+      }
     }
     setForm((p) => ({ ...p, imageFile: null, imagePreview: "" }));
     if (fileInputRef.current) {
       try {
         fileInputRef.current.value = "";
-      } catch (err) {}
+      } catch (err) {
+        console.log(err);
+      }
     }
   }
 

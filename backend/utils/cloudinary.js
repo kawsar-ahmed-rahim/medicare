@@ -7,7 +7,7 @@ import fs from 'fs';
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_SECRET: process.env.CLOUDINARY_API_SECRET,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
 //to upload files to cloudinary
@@ -31,9 +31,9 @@ export async function uploadToCloudinary(filePath, folder = "Doctor") {
 export async function deleteFromCloudinary(publicID) {
     try {
         if(!publicID) return;
-        await cloudinary.uploader.upload.destroy(publicID);
+        await cloudinary.uploader.destroy(publicID);
     } catch (error) {
-        console.log("Cloudinary upload error:",error);
+        console.log("Cloudinary delete error:",error);
         throw error; 
     }
 }

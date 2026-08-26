@@ -45,7 +45,7 @@ function normalizeService(doc) {
 const API_BASE = "http://localhost:4000";
 
 const ServiceDashboard = () => {
-     const [services, setServices] = useState(
+  const [services, setServices] = useState(
     Array.isArray(servicesProp) ? servicesProp.map(normalizeService) : [],
   );
   const [loading, setLoading] = useState(!Array.isArray(servicesProp));
@@ -78,7 +78,8 @@ const ServiceDashboard = () => {
       if (showLoading) {
         setLoading(true);
         setError(null);
-      } const url = `${API_BASE}/api/service-appointments/stats/summary`;
+      }
+      const url = `${API_BASE}/api/service-appointments/stats/summary`;
       const res = await fetch(url, buildFetchOptions());
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -107,7 +108,6 @@ const ServiceDashboard = () => {
       console.error("Service fetch error:", err);
       if (mountedRef.current) {
         setError(err.message || "Failed to load services");
-
       }
     } finally {
       if (mountedRef.current && showLoading) setLoading(false);
@@ -229,84 +229,143 @@ const ServiceDashboard = () => {
   return (
     <div className={serviceDashboardStyles.container}>
       <div className={serviceDashboardStyles.innerContainer}>
-
         <div className={serviceDashboardStyles.header.container}>
           <div>
-            <h1 className={serviceDashboardStyles.header.title}>Service Dashboard</h1>
-            <p className={serviceDashboardStyles.header.subtitle}>Overview of services, appointments and earnings</p>
-
+            <h1 className={serviceDashboardStyles.header.title}>
+              Service Dashboard
+            </h1>
+            <p className={serviceDashboardStyles.header.subtitle}>
+              Overview of services, appointments and earnings
+            </p>
           </div>
           <div className={serviceDashboardStyles.refresh.container}>
-            <div className={serviceDashboardStyles.refresh.countText}>{
-    loading ? "Loading..." : `${filteredServices.length} services${
-    filteredServices.length !== 1 ? "s" : ""}`}</div>
-    <button onClick={()=> {
-      if(Array.isArray(servicesProp)) return;
-      fetchServices({showLoading: true})}} className={serviceDashboardStyles.refresh.button(Array.isArray(servicesProp))} title={Array.isArray(servicesProp) ? "Services provided by parent component" : "Refresh"}>
-        Refresh
-
-    </button>
+            <div className={serviceDashboardStyles.refresh.countText}>
+              {loading
+                ? "Loading..."
+                : `${filteredServices.length} services${
+                    filteredServices.length !== 1 ? "s" : ""
+                  }`}
+            </div>
+            <button
+              onClick={() => {
+                if (Array.isArray(servicesProp)) return;
+                fetchServices({ showLoading: true });
+              }}
+              className={serviceDashboardStyles.refresh.button(
+                Array.isArray(servicesProp),
+              )}
+              title={
+                Array.isArray(servicesProp)
+                  ? "Services provided by parent component"
+                  : "Refresh"
+              }
+            >
+              Refresh
+            </button>
           </div>
         </div>
 
-
         <div className={serviceDashboardStyles.statGrid}>
-          <statGrid icon={<ClipboardList size={18} />}
-          label="Total Services" value={totals.totalServices} />
+          <statGrid
+            icon={<ClipboardList size={18} />}
+            label="Total Services"
+            value={totals.totalServices}
+          />
 
-           <statGrid icon={<calendar size={18} />}
-          label="Total Appointments" value={totals.totalServices} />
-           <statGrid icon={<Dollar size={18} />}
-          label="Total earnings" value={formatCurrency(totals.totalEarnings)} />
-           <statGrid icon={<CheckCircle size={18} />}
-          label="Completed" value={totals.totalCompleted} />
-           <statGrid icon={<XCircle size={18} />}
-          label="Canceled" value={totals.totalCanceled} />
-          
+          <statGrid
+            icon={<calendar size={18} />}
+            label="Total Appointments"
+            value={totals.totalServices}
+          />
+          <statGrid
+            icon={<Dollar size={18} />}
+            label="Total earnings"
+            value={formatCurrency(totals.totalEarnings)}
+          />
+          <statGrid
+            icon={<CheckCircle size={18} />}
+            label="Completed"
+            value={totals.totalCompleted}
+          />
+          <statGrid
+            icon={<XCircle size={18} />}
+            label="Canceled"
+            value={totals.totalCanceled}
+          />
+        </div>
+
+        {/* search bar */}
+        <div className={serviceDashboardStyles.search.container}>
+          <div className={serviceDashboardStyles.search.inputContainer}>
+            <Search size={16} className="text-emerald-700" />
+            <input
+              type="text"
+              placeholders="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={serviceDashboardStyles.search.input}
+            />
+            {searchQuery.length > 0 && (
+              <XCircle
+                size={16}
+                className="text-red-500 cursor-pointer"
+                onClick={() => setSearchQuery("")}
+              />
+            )}
           </div>
-
-          {/* search bar */}
-          <div className={serviceDashboardStyles.search.container}>
-            <div className={serviceDashboardStyles.search.inputContainer}>
-              <Search size={16} className="text-emerald-700" />
-              <input type="text" placeholders="Search services..." value={searchQuery} onChange={(e)=> setSearchQuery(e.target.value)} className={serviceDashboardStyles.search.input} />
-              {searchQuery.length > 0 && (
-                <XCircle size={16} className="text-red-500 cursor-pointer" onClick={()=> setSearchQuery("")} />
-              )}
+        </div>
+        {/* table list */}
+        <div className={serviceDashboardStyles.table.container}>
+          <div className={serviceDashboardStyles.table.headerMd}>
+            <div className={serviceDashboardStyles.table.headerText}>
+              Service
+            </div>
+            <div className={serviceDashboardStyles.table.headerText}>
+              Appointments
+            </div>
+            <div className={serviceDashboardStyles.table.headerText}>
+              Completed
+            </div>
+            <div className={serviceDashboardStyles.table.headerText}>
+              Canceled
+            </div>
+            <div className={serviceDashboardStyles.table.headerText}>
+              Earning
             </div>
           </div>
-          {/* table list */}
-          <div className={serviceDashboardStyles.table.container}>
-            <div className={serviceDashboardStyles.table.headerMd}>
-
-
-               <div className={serviceDashboardStyles.table.headerText}>Service</div>
-            <div className={serviceDashboardStyles.table.headerText}>Appointments</div>
-            <div className={serviceDashboardStyles.table.headerText}>Completed</div>
-            <div className={serviceDashboardStyles.table.headerText}>Canceled</div>
-            <div className={serviceDashboardStyles.table.headerText}>Earning</div>
-            </div>
-             <div className={serviceDashboardStyles.table.headerLg}>
+          <div className={serviceDashboardStyles.table.headerLg}>
             <div className="col-span-5">Service</div>
             <div className="col-span-2">Price</div>
-            <div className={serviceDashboardStyles.table.headerTextLg(1)}>Appointments</div>
-            <div className={serviceDashboardStyles.table.headerTextLg(1)}>Completed</div>
-            <div className={serviceDashboardStyles.table.headerTextLg(1)}>Canceled</div>
+            <div className={serviceDashboardStyles.table.headerTextLg(1)}>
+              Appointments
+            </div>
+            <div className={serviceDashboardStyles.table.headerTextLg(1)}>
+              Completed
+            </div>
+            <div className={serviceDashboardStyles.table.headerTextLg(1)}>
+              Canceled
+            </div>
             <div className="col-span-2 text-right">Earning</div>
           </div>
           <div className={serviceDashboardStyles.table.body}>
             {loading ? (
-              <div className={serviceDashboardStyles.states.loading}>Loading services...</div>
+              <div className={serviceDashboardStyles.states.loading}>
+                Loading services...
+              </div>
             ) : error ? (
-              <div className={serviceDashboardStyles.states.error}>Error : {error}</div>
-            ): visibleServices.length === 0 ? (
-              <div className={serviceDashboardStyles.states.empty}>No services found.</div>
-            ): (
-              visibleServices.map((s)=> {
+              <div className={serviceDashboardStyles.states.error}>
+                Error : {error}
+              </div>
+            ) : visibleServices.length === 0 ? (
+              <div className={serviceDashboardStyles.states.empty}>
+                No services found.
+              </div>
+            ) : (
+              visibleServices.map((s) => {
                 const earning = s.completed * s.price;
                 return (
-                  <div key={s.id}className={serviceDashboardStyles.table.row}>
-                     <div className={serviceDashboardStyles.table.tabletView}>
+                  <div key={s.id} className={serviceDashboardStyles.table.row}>
+                    <div className={serviceDashboardStyles.table.tabletView}>
                       <div className="flex items-center gap-3">
                         <div
                           className={serviceDashboardStyles.table.tabletImage}
@@ -359,32 +418,41 @@ const ServiceDashboard = () => {
 
                     <div className={serviceDashboardStyles.table.desktopView}>
                       <div className="col-span-5 flex items-center gap-4">
-                        <div className={serviceDashboardStyles.table.desktopImage}><img src={s.image} alt={s.name} className="w-full h-full object-cover" /></div>
+                        <div
+                          className={serviceDashboardStyles.table.desktopImage}
+                        >
+                          <img
+                            src={s.image}
+                            alt={s.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                )
+                );
               })
             )}
           </div>
-          </div>
+        </div>
       </div>
-
     </div>
-  )
-}
+  );
+};
 
 export default ServiceDashboard;
 
-function StatCard({icon, label, value}) {
+function StatCard({ icon, label, value }) {
   return (
     <div className={serviceDashboardStyles.statCard.container}>
-      <div className={serviceDashboardStyles.statCard.iconContainer}>{icon}</div>
+      <div className={serviceDashboardStyles.statCard.iconContainer}>
+        {icon}
+      </div>
 
       <div>
         <div className={serviceDashboardStyles.statCard.label}>{label}</div>
         <div className={serviceDashboardStyles.statCard.value}>{value}</div>
       </div>
     </div>
-  )
+  );
 }
