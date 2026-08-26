@@ -29,20 +29,31 @@ const Hero = ({ role = "admin", userName = "Doctor" }) => {
               {/* info Cards */}
               <div className={heroStyles.infoCards.container}>
                 <div className={heroStyles.infoCards.card}>
-                  <h3 className={heroStyles.infoCards.cardTitle}>Secure Access</h3>
-                  <p className={heroStyles.infoCards.cardText}>Role-based login with protected medical data.</p>
+                  <h3 className={heroStyles.infoCards.cardTitle}>
+                    Secure Access
+                  </h3>
+                  <p className={heroStyles.infoCards.cardText}>
+                    Role-based login with protected medical data.
+                  </p>
                 </div>
 
                 <div className={heroStyles.infoCards.card}>
-                  <h3 className={heroStyles.infoCards.cardTitle}>Real-time Management</h3>
-                  <p className={heroStyles.infoCards.cardText}>Monitor hospital activity and patient flow.</p>
+                  <h3 className={heroStyles.infoCards.cardTitle}>
+                    Real-time Management
+                  </h3>
+                  <p className={heroStyles.infoCards.cardText}>
+                    Monitor hospital activity and patient flow.
+                  </p>
                 </div>
 
                 <div className={heroStyles.infoCards.card}>
-                  <h3 className={heroStyles.infoCards.cardTitle}>Medical Dashboard</h3>
-                  <p className={heroStyles.infoCards.cardText}>Clean, fast, and doctor-friendly interface.</p>
+                  <h3 className={heroStyles.infoCards.cardTitle}>
+                    Medical Dashboard
+                  </h3>
+                  <p className={heroStyles.infoCards.cardText}>
+                    Clean, fast, and doctor-friendly interface.
+                  </p>
                 </div>
-
               </div>
             </div>
           </div>

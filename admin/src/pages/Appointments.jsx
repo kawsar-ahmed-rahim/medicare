@@ -1,13 +1,12 @@
-
-import AppointmentsPage from '../components/AppointmentsPage';
-import Navbar from './../components/Navbar';
+import AppointmentsPage from "../components/AppointmentsPage";
+import Navbar from "./../components/Navbar";
 const Appointments = () => {
   return (
     <div>
-        <Navbar />
-        <AppointmentsPage />
+      <Navbar />
+      <AppointmentsPage />
     </div>
-  )
-}
+  );
+};
 
-export default Appointments
+export default Appointments;

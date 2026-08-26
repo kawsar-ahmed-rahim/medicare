@@ -1,13 +1,12 @@
-
-import AddService from '../components/AddService';
-import Navbar from './../components/Navbar';
+import AddService from "../components/AddService";
+import Navbar from "./../components/Navbar";
 const AddSer = () => {
   return (
     <div>
-        <Navbar />
-        <AddService />
+      <Navbar />
+      <AddService />
     </div>
-  )
-}
+  );
+};
 
-export default AddSer
+export default AddSer;
