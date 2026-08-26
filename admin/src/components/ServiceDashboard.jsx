@@ -1,4 +1,15 @@
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  ClipboardList,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  Search,
+  BadgeIndianRupee,
+} from "lucide-react";
 import { serviceDashboardStyles } from "../assets/dummyStyles";
+
 function normalizeService(doc) {
   if (!doc) return null;
   const id = doc._id || doc.id || String(Math.random()).slice(2);
@@ -42,9 +53,10 @@ function normalizeService(doc) {
     raw: doc,
   };
 }
+
 const API_BASE = "http://localhost:4000";
 
-const ServiceDashboard = () => {
+const ServiceDashboard = ({ services: servicesProp }) => {
   const [services, setServices] = useState(
     Array.isArray(servicesProp) ? servicesProp.map(normalizeService) : [],
   );
@@ -226,6 +238,7 @@ const ServiceDashboard = () => {
   function formatCurrency(v) {
     return `$${Number(v || 0).toLocaleString()}`;
   }
+
   return (
     <div className={serviceDashboardStyles.container}>
       <div className={serviceDashboardStyles.innerContainer}>
@@ -242,7 +255,7 @@ const ServiceDashboard = () => {
             <div className={serviceDashboardStyles.refresh.countText}>
               {loading
                 ? "Loading..."
-                : `${filteredServices.length} services${
+                : `${filteredServices.length} service${
                     filteredServices.length !== 1 ? "s" : ""
                   }`}
             </div>
@@ -266,28 +279,28 @@ const ServiceDashboard = () => {
         </div>
 
         <div className={serviceDashboardStyles.statGrid}>
-          <statGrid
+          <StatCard
             icon={<ClipboardList size={18} />}
             label="Total Services"
             value={totals.totalServices}
           />
 
-          <statGrid
-            icon={<calendar size={18} />}
+          <StatCard
+            icon={<Calendar size={18} />}
             label="Total Appointments"
-            value={totals.totalServices}
+            value={totals.totalAppointments}
           />
-          <statGrid
-            icon={<Dollar size={18} />}
+          <StatCard
+            icon={<DollarSign size={18} />}
             label="Total earnings"
-            value={formatCurrency(totals.totalEarnings)}
+            value={formatCurrency(totals.totalEarning)}
           />
-          <statGrid
+          <StatCard
             icon={<CheckCircle size={18} />}
             label="Completed"
             value={totals.totalCompleted}
           />
-          <statGrid
+          <StatCard
             icon={<XCircle size={18} />}
             label="Canceled"
             value={totals.totalCanceled}
@@ -300,7 +313,7 @@ const ServiceDashboard = () => {
             <Search size={16} className="text-emerald-700" />
             <input
               type="text"
-              placeholders="Search services..."
+              placeholder="Search services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={serviceDashboardStyles.search.input}
@@ -427,6 +440,127 @@ const ServiceDashboard = () => {
                             className="w-full h-full object-cover"
                           />
                         </div>
+                        <h3
+                          className={
+                            serviceDashboardStyles.table.desktopServiceName
+                          }
+                        >
+                          {s.name}
+                        </h3>
+                      </div>
+                      <div
+                        className={serviceDashboardStyles.table.desktopCell(2)}
+                      >
+                        {formatCurrency(s.price)}
+                      </div>
+                      <div
+                        className={serviceDashboardStyles.table.desktopCenterCell(
+                          1,
+                        )}
+                      >
+                        {s.totalAppointments}
+                      </div>
+                      <div
+                        className={serviceDashboardStyles.table.desktopCenterCell(
+                          1,
+                        )}
+                      >
+                        {s.completed}
+                      </div>
+                      <div
+                        className={serviceDashboardStyles.table.desktopCenterCell(
+                          1,
+                        )}
+                      >
+                        {s.canceled}
+                      </div>
+                      <div
+                        className={`${serviceDashboardStyles.table.desktopCell(2)} text-right`}
+                      >
+                        {formatCurrency(earning)}
+                      </div>
+                    </div>
+
+                    <div className={serviceDashboardStyles.table.mobileView}>
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={serviceDashboardStyles.table.mobileImage}
+                        >
+                          <img
+                            src={s.image}
+                            alt={s.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={
+                              serviceDashboardStyles.table.mobileServiceHeader
+                            }
+                          >
+                            <h3
+                              className={
+                                serviceDashboardStyles.table.mobileServiceName
+                              }
+                            >
+                              {s.name}
+                            </h3>
+                            <div className="text-sm font-medium">
+                              {formatCurrency(s.price)}
+                            </div>
+                          </div>
+
+                          <div
+                            className={
+                              serviceDashboardStyles.table.mobileStatsContainer
+                            }
+                          >
+                            <div
+                              className={serviceDashboardStyles.table.mobileStatItem(
+                                "emerald",
+                              )}
+                            >
+                              <Calendar size={14} />
+                              <span className="leading-none">
+                                {s.totalAppointments} Appointments
+                              </span>
+                            </div>
+
+                            <div
+                              className={serviceDashboardStyles.table.mobileStatItem(
+                                "emerald",
+                              )}
+                            >
+                              <CheckCircle size={14} />
+                              <span className="leading-none text-emerald-700">
+                                {s.completed} Completed
+                              </span>
+                            </div>
+
+                            <div
+                              className={serviceDashboardStyles.table.mobileStatItem(
+                                "red",
+                              )}
+                            >
+                              <XCircle size={14} />
+                              <span className="leading-none text-red-500">
+                                {s.canceled} Canceled
+                              </span>
+                            </div>
+
+                            <div
+                              className={serviceDashboardStyles.table.mobileStatItem(
+                                "emerald",
+                              )}
+                            >
+                              <BadgeIndianRupee size={14} />
+                              <span className="leading-none">
+                                Total Earning : {formatCurrency(earning)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -435,6 +569,19 @@ const ServiceDashboard = () => {
             )}
           </div>
         </div>
+
+        {filteredServices.length > INITIAL_COUNT && (
+          <div className={serviceDashboardStyles.showMore.container}>
+            <button
+              onClick={() => setShowAll((s) => !s)}
+              className={serviceDashboardStyles.showMore.button}
+            >
+              {showAll
+                ? "Show less"
+                : `Show more (${filteredServices.length - INITIAL_COUNT})`}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
