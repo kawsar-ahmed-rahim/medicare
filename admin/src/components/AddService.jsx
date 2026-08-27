@@ -11,10 +11,9 @@ import {
 } from "lucide-react";
 
 import { addServiceStyles } from "../assets/dummyStyles";
+const API_BASE = "http://localhost:4000";
 
 const AddService = ({ serviceId }) => {
-  const API_BASE = "http://localhost:4000";
-
   const fileRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);

@@ -965,7 +965,7 @@ export default function ListServicePage() {
                               </select>
                             </div>
 
-                            <div className="flex-shrink-0">
+                            <div className="shrink-0">
                               <button
                                 onClick={() => removeSlot(slot.id)}
                                 className={s.removeSlotButton}
