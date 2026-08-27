@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Image as ImageIcon,
   Edit2,
@@ -306,7 +306,9 @@ export default function ListServicePage() {
         if (res.ok && body) {
           latest = body.data || body.service || body;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log(e);
+      }
     }
 
     const normalized = {
@@ -565,7 +567,9 @@ export default function ListServicePage() {
     if (editForm?.imagePreview && editForm.imagePreview.startsWith("blob:")) {
       try {
         URL.revokeObjectURL(editForm.imagePreview);
-      } catch (err) {}
+      } catch (err) {
+        console.log(err);
+      }
     }
     const url = URL.createObjectURL(f);
     setEditForm((prev) => ({ ...prev, imagePreview: url, imageFile: f }));
@@ -745,7 +749,7 @@ export default function ListServicePage() {
                     </div>
 
                     <div className={s.servicePriceContainer}>
-                      <div className={s.servicePrice}>₹{svc.price}</div>
+                      <div className={s.servicePrice}>${svc.price}</div>
                       <div
                         className={`${s.availabilityBadge} ${
                           svc.available

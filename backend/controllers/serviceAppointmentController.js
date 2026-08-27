@@ -444,11 +444,12 @@ export const getServiceAppointments = async (req, res) => {
       const re = new RegExp(search, "i");
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
     }
-    const appointment = await ServiceAppointment.find(filter)
+    const appointments = await ServiceAppointment.find(filter)
       .populate("ServiceId", "name imageUrl imageSmall")
       .sort({ createAt: -1 })
       .skip(skip)
-      .limit.lean();
+      .limit(limit)
+      .lean();
     const total = await ServiceAppointment.countDocuments(filter);
     return res.json({
       success: true,
