@@ -77,27 +77,39 @@ const Testimonial = () => {
     const scrollRight = scrollRefRight.current;
     if (!scrollLeft || !scrollRight) return;
 
-    let scrollSpeed = 0.5; // preserved animation speed
+    let leftPos = 0;
+    let rightPos = 0;
     let rafId;
+    const scrollSpeed = 0.5;
+
+    // Give images a moment to load so scrollHeight is accurate
+    const timer = setTimeout(() => {
+      rightPos = scrollRight.scrollHeight / 2;
+      scrollRight.scrollTop = Math.round(rightPos);
+    }, 300);
 
     const smoothScroll = () => {
       if (!isPaused) {
-        scrollLeft.scrollTop += scrollSpeed;
-        scrollRight.scrollTop -= scrollSpeed;
+        const leftMax = scrollLeft.scrollHeight / 2;
+        const rightMax = scrollRight.scrollHeight / 2;
 
-        // seamless infinite loop
-        if (scrollLeft.scrollTop >= scrollLeft.scrollHeight / 2) {
-          scrollLeft.scrollTop = 0;
-        }
-        if (scrollRight.scrollTop <= 0) {
-          scrollRight.scrollTop = scrollRight.scrollHeight / 2;
-        }
+        leftPos += scrollSpeed;
+        if (leftPos >= leftMax) leftPos = 0;
+
+        rightPos -= scrollSpeed;
+        if (rightPos <= 0) rightPos = rightMax;
+
+        scrollLeft.scrollTop = Math.round(leftPos);
+        scrollRight.scrollTop = Math.round(rightPos);
       }
       rafId = requestAnimationFrame(smoothScroll);
     };
 
     rafId = requestAnimationFrame(smoothScroll);
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+    };
   }, [isPaused]);
 
   const renderStars = (rating) =>
@@ -146,7 +158,63 @@ const Testimonial = () => {
       </div>
     </div>
   );
-  return <div>Testimonial</div>;
+  return (
+    <div className={a.container}>
+      <div className={a.headerContainer}>
+        <h2 className={a.title}>Voices of Trust</h2>
+        <p className={a.subTitle}>
+          Real stories from doctors and patients sharing their positive
+          experiences with our healthcare platform.
+        </p>
+      </div>
+      <div
+        className={a.grid}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div className={`${a.columnContainer} ${a.leftColumnBorder}`}>
+          <div className={`${a.columnHeader} ${a.leftColumnBorder}`}>
+            👩‍⚕️ Medical Professionals
+          </div>
+          <div
+            className={a.scrollContainer}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+            ref={scrollRefLeft}
+          >
+            {[...leftTestimonials, ...leftTestimonials].map((t, i) => (
+              <TestimonialCard
+                key={`L-${i}`}
+                testimonial={t}
+                direction="left"
+              />
+            ))}
+          </div>
+        </div>
+        <div className={`${a.columnContainer} ${a.rightColumnBorder}`}>
+          <div className={`${a.columnHeader} ${a.rightColumnHeader}`}>
+            {" "}
+            🧑 Patients
+          </div>
+          <div
+            className={a.scrollContainer}
+            ref={scrollRefRight}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+          >
+            {[...rightTestimonials, ...rightTestimonials].map((t, i) => (
+              <TestimonialCard
+                key={`R-${i}`}
+                testimonial={t}
+                direction="right"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <style>{a.animationStyles}</style>
+    </div>
+  );
 };
 
 export default Testimonial;
