@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { doctorsPageStyles } from "../assets/dummyStyles";
+import { useState, useEffect, useMemo } from "react";
+import { doctorsPageStyles as a } from "../assets/dummyStyles";
+import { Search, X } from "lucide-react";
 
 const DoctorsPage = () => {
   const API_BASE = "http://localhost:4000";
@@ -135,7 +136,52 @@ const DoctorsPage = () => {
       setLoading(false);
     }
   };
-  return <div>DoctorsPage</div>;
+  return (
+    <div className={a.mainContainer}>
+      <div className={a.backgroundShape1}></div>
+      <div className={a.backgroundShape2}></div>
+      <div className={a.wrapper}>
+        <div className={a.headerContainer}>
+          <h1 className={a.headerTitle}>Our Medical Experts</h1>
+          <p className={a.headerSubtitle}>
+            Find your ideal doctor by name or specialization
+          </p>
+        </div>
+
+        <div className={a.searchContainer}>
+          <div className={a.searchWrapper}>
+            <input
+              type="text"
+              placeholder="search doctors by name or specializations.."
+              value={searchTerm}
+              className={a.searchInput}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className={a.searchIcon} />
+            {searchTerm.length > 0 && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className={a.clearButton}
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+        </div>
+        {error && (
+          <div className={a.errorContainer}>
+            <div className={a.errorText}>{error}</div>
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={retry} className={a.retryButton}>
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+        {/*loading */}
+      </div>
+    </div>
+  );
 };
 
 export default DoctorsPage;
