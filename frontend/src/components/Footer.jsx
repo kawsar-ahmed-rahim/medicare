@@ -208,7 +208,23 @@ const Footer = () => {
           </div>
           ;
         </div>
-        <div className=""></div>
+        <div className={a.bottomSection}>
+          <div className={a.copyright}>
+            <span>&copy; {currentYear} Medicare Healthcare.</span>
+          </div>
+          <div className={a.designerText}>
+            <span>Designed by</span>
+            <a
+              href="www.linkedin.com/in/kawsar-ahmed-rahim-b52076335
+
+"
+              target="_blank"
+              className={a.designerLink}
+            >
+              Kawsar Rahim
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );
