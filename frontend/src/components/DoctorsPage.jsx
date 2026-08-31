@@ -1,7 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { doctorsPageStyles as a } from "../assets/dummyStyles";
-import { Search, X } from "lucide-react";
-
+import {
+  ChevronRight,
+  CircleChevronDown,
+  CircleChevronUp,
+  Medal,
+  MousePointer2Off,
+  Search,
+  X,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 const DoctorsPage = () => {
   const API_BASE = "http://localhost:4000";
   const [allDoctors, setAllDoctors] = useState([]);
@@ -179,6 +187,117 @@ const DoctorsPage = () => {
           </div>
         )}
         {/*loading */}
+        {loading ? (
+          <div className={a.skeletonGrid}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div className={a.skeletonCard} key={i}>
+                <div className={a.skeletonImage}></div>
+                <div className={a.skeletonName}></div>
+                <div className={a.skeletonSpecialization}></div>
+                <div className={a.skeletonButton}></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className={`${a.doctorsGrid}${filteredDoctors.length === 0 ? "opacity-70" : "opacity-100"}`}
+          >
+            {displayedDoctors.length > 0 ? (
+              displayedDoctors.map((doctor, index) => (
+                <div
+                  key={doctor.id || `${doctor.name}-${index}`}
+                  className={`${a.doctorCard} ${!doctor.available ? a.doctorCardUnavailable : ""}`}
+                  style={{ animationDelay: `${index * 90}ms` }}
+                  role="article"
+                >
+                  {doctor.available ? (
+                    <Link
+                      to={`/doctors/${doctor.id}`}
+                      state={{ doctor: doctor.raw || doctor }}
+                      className={a.focusRing}
+                    >
+                      <div className={a.imageContainer}>
+                        <img
+                          src={doctor.image || "/placeholder-doctor.jpg"}
+                          alt={doctor.name}
+                          loading="lazy"
+                          className={a.doctorImage}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/placeholder-doctor.jpg";
+                          }}
+                        />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div
+                      className={`${a.imageContainer} ${a.imageContainerUnavailable}`}
+                    >
+                      <img
+                        src={doctor.image || "/placeholder-doctor.jpg"}
+                        alt={doctor.name}
+                        loading="lazy"
+                        className={a.doctorImageUnavailable}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/placeholder-doctor.jpg";
+                        }}
+                      />
+                    </div>
+                  )}
+                  <h3 className={a.doctorName}>{doctor.name}</h3>
+                  <p className={a.doctorSpecialization}>
+                    {doctor.specialization}
+                  </p>
+                  <div className={a.experienceBadge}>
+                    <Medal className={a.experienceIcon} />
+                    <span>{doctor.experience} years experience</span>
+                  </div>
+                  {doctor.available ? (
+                    <Link
+                      to={`/doctors/${doctor.id}`}
+                      state={{ doctor: doctor.raw || doctor }}
+                      className={a.bookButton}
+                    >
+                      <ChevronRight className={a.bookButtonIcon} />
+                      Book Now
+                    </Link>
+                  ) : (
+                    <button disabled className={a.notAvailableButton}>
+                      <MousePointer2Off className={a.notAvailableIcon} />
+                      Not Available
+                    </button>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className={a.noResults}>
+                No doctors found matching your search criteria.
+              </div>
+            )}
+          </div>
+        )}
+
+        {filteredDoctors.length > 8 && (
+          <div className={a.showMoreContainer}>
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className={a.showMoreButton}
+            >
+              {showAll ? (
+                <>
+                  <CircleChevronUp className={a.showMoreIcon} />
+                  Hide
+                </>
+              ) : (
+                <>
+                  <CircleChevronDown className={a.showMoreIcon} />
+                  Show More
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
