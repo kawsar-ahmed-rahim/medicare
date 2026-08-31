@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { serviceCardStyles, servicePageStyles } from "../assets/dummyStyles";
-
+import { ChevronsRight, MousePointer2Off } from "lucide-react";
+import { Link } from "react-router-dom";
 const PlaceholderImg = "/placeholder-service.jpg";
 
 const ServiceCard = ({ service }) => {
@@ -169,7 +170,15 @@ const ServicePage = ({previewCount = 9999}) => {
 
 
   return (
-    <div>ServicePage</div>
+    <div className={servicePageStyles.pageContainer}>
+        <div className={servicePageStyles.maxWidthContainer}>
+            <header className={servicePageStyles.header}>
+                <h1 className={servicePageStyles.title}>Our Diagnostic Services</h1>
+                <p className={servicePageStyles.subtitle}>Safe, accurate & reliable testing.</p>
+            </header>
+            {}
+        </div>
+    </div>
   )
 }
 
