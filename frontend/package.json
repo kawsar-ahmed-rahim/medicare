@@ -18,7 +18,9 @@
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.2",
-    "tailwindcss": "^4.3.3"
+    "react-toastify": "^11.1.0",
+    "tailwindcss": "^4.3.3",
+    "toastify": "^2.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
