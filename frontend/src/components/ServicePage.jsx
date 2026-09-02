@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { serviceCardStyles, servicePageStyles } from "../assets/dummyStyles";
 import { ChevronsRight, MousePointer2Off } from "lucide-react";
 import { Link } from "react-router-dom";
+import { servicePageStyles } from "./../assets/dummyStyles";
 const PlaceholderImg = "/placeholder-service.jpg";
 
 const ServiceCard = ({ service }) => {
@@ -103,8 +104,8 @@ const ServiceCard = ({ service }) => {
     </div>
   );
 };
-const ServicePage = ({previewCount = 9999}) => {
-     const API_BASE = "http://localhost:4000";
+const ServicePage = ({ previewCount = 9999 }) => {
+  const API_BASE = "http://localhost:4000";
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -168,18 +169,40 @@ const ServicePage = ({previewCount = 9999}) => {
 
   const shown = services.slice(0, previewCount);
 
-
   return (
     <div className={servicePageStyles.pageContainer}>
-        <div className={servicePageStyles.maxWidthContainer}>
-            <header className={servicePageStyles.header}>
-                <h1 className={servicePageStyles.title}>Our Diagnostic Services</h1>
-                <p className={servicePageStyles.subtitle}>Safe, accurate & reliable testing.</p>
-            </header>
-            {}
-        </div>
+      <div className={servicePageStyles.maxWidthContainer}>
+        <header className={servicePageStyles.header}>
+          <h1 className={servicePageStyles.title}>Our Diagnostic Services</h1>
+          <p className={servicePageStyles.subtitle}>
+            Safe, accurate & reliable testing.
+          </p>
+        </header>
+        {loading ? (
+          <section className={servicePageStyles.skeletonGrid}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div className={servicePageStyles.skeletonCard} key={i}>
+                <div className={servicePageStyles.skeletonImage}></div>
+                <div className={servicePageStyles.skeletonText1}></div>
+                <div className={servicePageStyles.skeletonText2}></div>
+                <div className={servicePageStyles.skeletonButton}></div>
+              </div>
+            ))}
+          </section>
+        ) : (
+          <section className={servicePageStyles.servicesGrid}>
+            {shown.length > 0 ? (
+              shown.map((s) => <ServiceCard key={s.id || s.name} service={s} />)
+            ) : (
+              <div className={servicePageStyles.emptyState}>
+                No Services available
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default ServicePage
+export default ServicePage;
