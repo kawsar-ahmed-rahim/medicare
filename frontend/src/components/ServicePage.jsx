@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { serviceCardStyles, servicePageStyles } from "../assets/dummyStyles";
 import { ChevronsRight, MousePointer2Off } from "lucide-react";
 import { Link } from "react-router-dom";
-import { servicePageStyles } from "./../assets/dummyStyles";
 const PlaceholderImg = "/placeholder-service.jpg";
 
 const ServiceCard = ({ service }) => {

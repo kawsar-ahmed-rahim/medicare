@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { contactPageStyles as a } from "../assets/dummyStyles";
 import { Mail, MapPin, MessageSquare, Phone, SendHorizonal, Stethoscope, User } from 'lucide-react';
-import defineConfig from './../../eslint.config';
 const ContactPage = () => {
   const initial = {
     name: "",
