@@ -1,7 +1,8 @@
 import { listPageStyles as a } from "../assets/dummyStyles";
-import {useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
-
+import { Calendar, Phone, Search, X } from "lucide-react";
+const API_BASE = "http://localhost:4000";
 function parseDateTime(date, time) {
   return new Date(`${date}T${time}:00`);
 }
@@ -429,12 +430,12 @@ const ListPage = () => {
 
   const filtered = useMemo(() => {
     return [...appointments]
-      .filter((a) =>
+      .filter((appt) =>
         search
-          ? (a.patient || "").toLowerCase().includes(search.toLowerCase())
+          ? (appt.patient || "").toLowerCase().includes(search.toLowerCase())
           : true,
       )
-      .filter((a) => (statusFilter ? a.status === statusFilter : true))
+      .filter((appt) => (statusFilter ? appt.status === statusFilter : true))
       .sort(
         (a, b) => parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time),
       );
@@ -449,13 +450,99 @@ const ListPage = () => {
               Latest at top - search by patient name
             </p>
           </div>
-          <div className="">
-            <div className="">
-                <div className=""></div>
-                <input type="text" />
+          <div className={a.searchFilterContainer}>
+            <div className={a.searchContainer}>
+              <div className={a.searchIconContainer}>
+                <Search className={a.searchIcon} />
+              </div>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={a.searchInput}
+                placeholder="Search by patient name..."
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className={a.clearSearchButton}
+                >
+                  <X className={a.clearSearchIcon} />
+                </button>
+              )}
             </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={a.statusFilter}
+              title="Filter by status"
+            >
+              <option value="">All</option>
+              <option value="complete">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="rescheduled">Rescheduled</option>
+            </select>
           </div>
         </div>
+        {loading ? (
+          <div className={a.loadingContainer}>Loading appointments...</div>
+        ) : error ? (
+          <div className={a.errorContainer}>Error: {error}</div>
+        ) : (
+          <div className={a.listContainer}>
+            {filtered.map((appt) => (
+              <article key={appt.id} className={a.appointmentCard}>
+                <header className={a.cardHeader}>
+                  <div className={a.cardAvatar}>
+                    {appt.doctorImage ? (
+                      <img
+                        src={appt.doctorImage}
+                        alt={appt.doctorName}
+                        className={a.cardAvatarImage}
+                        onError={(e) =>
+                          (e.currentTarget.style.display = "none")
+                        }
+                      />
+                    ) : (
+                      <div className={a.cardAvatarFallback}>
+                        {(appt.doctorName || "D").charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className={a.cardContent}>
+                    <div className={a.cardPatientName}>{appt.patient}</div>
+                    <div className={a.cardPatientInfo}>
+                      {appt.age} yrs &middot; {appt.gender}
+                    </div>
+                    <div className={a.cardPatientInfo}>
+                      <span className={a.cardDoctorName}>{appt.doctorName}</span>
+                    </div>
+                    <div className={a.cardSpeciality}>{a.speciality}</div>
+                  </div>
+                </header>
+                    <div className={a.dateTimeSection}>
+                  <div className={a.dateTimeContainer}>
+                    <Calendar className={a.calendarIcon} />
+                    <span className={a.dateText}>
+                      {formatDate(appt.date)}
+                    </span>
+                    <span className=" sm:inline">:</span>
+                    <span>{formatTimeAMPM(appt.time)}</span>
+                  </div>
+                  <div className={a.feeText}>₹{appt.fee}</div>
+                </div>
+                <div className={a.contactStatusSection}>
+                    <div className={a.phoneContainer}>
+                        <Phone className={a.phoneIcon} />
+                        <span className={a.phoneNumber}>{appt.mobile}</span>
+                    </div>
+
+                    <div className=""></div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
