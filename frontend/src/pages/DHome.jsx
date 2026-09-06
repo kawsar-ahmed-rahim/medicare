@@ -1,11 +1,13 @@
-import NavbarDoctor from "../doctor/NavbarDoctor"
+import DashboardPage from "../doctor/DashboardPage";
+import NavbarDoctor from "../doctor/NavbarDoctor";
 
 const DHome = () => {
   return (
     <div>
-        <NavbarDoctor />
+      <NavbarDoctor />
+      <DashboardPage />
     </div>
-  )
-}
+  );
+};
 
-export default DHome
+export default DHome;
