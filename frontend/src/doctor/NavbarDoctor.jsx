@@ -1,7 +1,7 @@
-import { LogOut, Menu } from "lucide-react";
 import { navbarStylesDr as a } from "../assets/dummyStyles";
 import logo from "../assets/logo.png";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { LogOut, Menu, Home, Calendar, Edit, X } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 const NavbarDoctor = () => {
   const [open, setOpen] = useState(false);
@@ -110,7 +110,7 @@ const NavbarDoctor = () => {
             }}
             className={a.mobileLogoutContainer}
           >
-            <div className={a.mobileMenuContainer}>
+            <div className={a.mobileLogoutContent}>
               <LogOut size={16} />
             </div>
           </button>
