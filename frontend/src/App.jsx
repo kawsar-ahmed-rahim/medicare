@@ -6,6 +6,7 @@ import Service from "./pages/Service";
 import ServiceDetailPage from "./pages/ServiceDetailPage";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import DHome from "./pages/DHome";
 const App = () => {
   return (
     <div>
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/services/:id" element={<ServiceDetailPage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/doctor-admin/login" element={<Login />} />
+        <Route path="/doctor-admin/:id" element={<DHome />} />
       </Routes>
     </div>
   );
