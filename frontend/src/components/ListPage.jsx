@@ -1,7 +1,12 @@
 import { listPageStyles as a } from "../assets/dummyStyles";
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Calendar, Phone, Search, X } from "lucide-react";
+import {
+  Calendar,
+  Phone,
+  Search,
+  X
+} from "lucide-react";
 const API_BASE = "http://localhost:4000";
 function parseDateTime(date, time) {
   return new Date(`${date}T${time}:00`);
@@ -515,29 +520,41 @@ const ListPage = () => {
                       {appt.age} yrs &middot; {appt.gender}
                     </div>
                     <div className={a.cardPatientInfo}>
-                      <span className={a.cardDoctorName}>{appt.doctorName}</span>
+                      <span className={a.cardDoctorName}>
+                        {appt.doctorName}
+                      </span>
                     </div>
-                    <div className={a.cardSpeciality}>{a.speciality}</div>
+                    <div className={a.cardSpeciality}>{appt.speciality}</div>
                   </div>
                 </header>
-                    <div className={a.dateTimeSection}>
+                <div className={a.dateTimeSection}>
                   <div className={a.dateTimeContainer}>
                     <Calendar className={a.calendarIcon} />
-                    <span className={a.dateText}>
-                      {formatDate(appt.date)}
-                    </span>
+                    <span className={a.dateText}>{formatDate(appt.date)}</span>
                     <span className=" sm:inline">:</span>
                     <span>{formatTimeAMPM(appt.time)}</span>
                   </div>
                   <div className={a.feeText}>₹{appt.fee}</div>
                 </div>
                 <div className={a.contactStatusSection}>
-                    <div className={a.phoneContainer}>
-                        <Phone className={a.phoneIcon} />
-                        <span className={a.phoneNumber}>{appt.mobile}</span>
-                    </div>
+                  <div className={a.phoneContainer}>
+                    <Phone className={a.phoneIcon} />
+                    <span className={a.phoneNumber}>{appt.mobile}</span>
+                  </div>
 
-                    <div className=""></div>
+                  <div className={a.statusContainer}>
+                    <StatusBadge status={appt.status} />
+                    <StatusSelect
+                      appointment={appt}
+                      onChange={(s) => updateStatus(appt.id, s)}
+                    />
+                  </div>
+                </div>
+                <div className={a.rescheduleContainer}>
+                  <RescheduleButton
+                    appointment={appt}
+                    onReschedule={(d, t) => updateDateTime(appt.id, d, t)}
+                  />
                 </div>
               </article>
             ))}
