@@ -8,6 +8,8 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import DHome from "./pages/DHome";
 import List from "./doctor/List";
+import EditProfile from "./doctor/EditProfile";
+import Appointment from "./pages/Appointment";
 const App = () => {
   return (
     <div>
@@ -17,10 +19,17 @@ const App = () => {
         <Route path="/doctors/:id" element={<DoctorDetail />} />
         <Route path="/services" element={<Service />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/appointment" element={<Appointment />} />
         <Route path="/contact" element={<Contact />} />
+
+        {/* doctor */}
         <Route path="/doctor-admin/login" element={<Login />} />
         <Route path="/doctor-admin/:id" element={<DHome />} />
         <Route path="/doctor-admin/:id/appointments" element={<List />} />
+        <Route
+          path="/doctor-admin/:id/profile/edit"
+          element={<EditProfile />}
+        />
       </Routes>
     </div>
   );
