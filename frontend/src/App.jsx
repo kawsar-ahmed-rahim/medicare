@@ -1,7 +1,7 @@
 import DoctorDetail from "./pages/DoctorDetail";
 import Doctors from "./pages/Doctors";
 import Home from "./pages/Home";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import Service from "./pages/Service";
 import ServiceDetailPage from "./pages/ServiceDetailPage";
 import Contact from "./pages/Contact";
@@ -10,9 +10,10 @@ import DHome from "./pages/DHome";
 import List from "./doctor/List";
 import EditProfile from "./doctor/EditProfile";
 import Appointment from "./pages/Appointment";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import VerifyPaymentPage from "../VerifyPaymentPage";
 import VerifyServicePaymentPage from "../VerifyServicePaymentPage";
+import { CircleChevronUp } from "lucide-react";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -69,7 +70,7 @@ const App = () => {
           <Route path="/doctors/:id" element={<DoctorDetail />} />
           <Route path="/services" element={<Service />} />
           <Route path="/services/:id" element={<ServiceDetailPage />} />
-          <Route path="/appointment" element={<Appointment />} />
+          <Route path="/appointments" element={<Appointment />} />
           <Route path="/contact" element={<Contact />} />
 
           {/* doctor */}

@@ -1,13 +1,20 @@
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { Toaster } from "react-hot-toast";
+import { appointmentPageStyles } from "../assets/dummyStyles";
 import {
-  appointmentPageStyles,
-  cardStyles,
-  badgeStyles,
-  iconSize,
-} from "../assets/dummyStyles";
+  CreditCard,
+  Wallet,
+  CheckCircle,
+  Bell,
+  Clock,
+  XCircle,
+  CalendarDays,
+} from "lucide-react";
 import axios from "axios";
 
 const API_BASE = "http://localhost:4000";
-const APi = axios.create({ baseURL: API_BASE });
+const API = axios.create({ baseURL: API_BASE });
 //helper function
 function pad(n) {
   return String(n ?? 0).padStart(2, "0");
