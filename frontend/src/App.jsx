@@ -14,54 +14,79 @@ import { useEffect } from "react";
 import VerifyPaymentPage from "../VerifyPaymentPage";
 
 const ScrollToTop = () => {
-  const {pathname} = useLocation();
+  const { pathname } = useLocation();
 
-  useEffect(()=>{
-     window.scrollTo(0,0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  },[pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname]);
   return null;
 };
-// scroll button
-const App = () => {
-  //use
+const ScrollButton = () => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 200);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
-   <>
-   <ScrollToTop />
-    <div className="overflow-x-hidden bg-white text-gray-900">
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/doctors" element={<Doctors />} />
-        <Route path="/doctors/:id" element={<DoctorDetail />} />
-        <Route path="/services" element={<Service />} />
-        <Route path="/services/:id" element={<ServiceDetailPage />} />
-        <Route path="/appointment" element={<Appointment />} />
-        <Route path="/contact" element={<Contact />} />
+    <button
+      onClick={scrollTop}
+      className={`fixed right-4 bottom-6 z-50 w-11 h-11 rounded-full flex items-center justify-center 
+      bg-emerald-600 text-white shadow-lg transition-all duration-300 
+      ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} 
+      hover:scale-110 hover:shadow-xl`}
+      title="Go to top"
+    >
+      <CircleChevronUp size={22} />
+    </button>
+  );
+};
+const App = () => {
+  useEffect(() => {
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+    return () => {
+      document.body.style.overflowX = "auto";
+      document.documentElement.style.overflowX = "auto";
+    };
+  }, []);
 
-        {/* doctor */}
-        <Route path="/doctor-admin/login" element={<Login />} />
-        <Route path="/doctor-admin/:id" element={<DHome />} />
-        <Route path="/doctor-admin/:id/appointments" element={<List />} />
-        <Route
-          path="/doctor-admin/:id/profile/edit"
-          element={<EditProfile />}
-        />
+  return (
+    <>
+      <ScrollToTop />
+      <div className="overflow-x-hidden bg-white text-gray-900">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/doctors/:id" element={<DoctorDetail />} />
+          <Route path="/services" element={<Service />} />
+          <Route path="/services/:id" element={<ServiceDetailPage />} />
+          <Route path="/appointment" element={<Appointment />} />
+          <Route path="/contact" element={<Contact />} />
 
-        {/* for the payment verifications */}
-         <Route
-          path="/appointment/success"
-          element={<VerifyPaymentPage />}
-        />
-        <Route
-          path="/appointment/cancel"
-          element={<VerifyPaymentPage />}
-        />
-      </Routes>
-    </div>
-    <ScrollButton />
-   </>
+          {/* doctor */}
+          <Route path="/doctor-admin/login" element={<Login />} />
+          <Route path="/doctor-admin/:id" element={<DHome />} />
+          <Route path="/doctor-admin/:id/appointments" element={<List />} />
+          <Route
+            path="/doctor-admin/:id/profile/edit"
+            element={<EditProfile />}
+          />
+
+          {/* for the payment verifications */}
+          <Route path="/appointment/success" element={<VerifyPaymentPage />} />
+          <Route path="/appointment/cancel" element={<VerifyPaymentPage />} />
+        </Routes>
+      </div>
+      <ScrollButton />
+    </>
   );
 };
 
