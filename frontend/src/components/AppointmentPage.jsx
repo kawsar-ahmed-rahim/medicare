@@ -473,7 +473,58 @@ const AppointmentPage = () => {
                     No doctor appointment found.
                 </div>
             )}
-            <div className=""></div>
+            <div className={appointmentPageStyles.doctorGrid}>
+                {appointmentData.map((item)=> (
+                    <div className={cardStyles.doctorCard} key={item.id}>
+                        <div className={cardStyles.doctorImageContainer}>
+                               <img src={item.image || "/placeholder-doctor.png"} alt={item.doctor} className={cardStyles.image} loading="lazy" />
+                        </div>
+                        <h2 className={cardStyles.doctorName}>{item.doctor}</h2>
+                        <div className={cardStyles.specialization}>
+                          {item.specialization}{""}
+                          {item.experience ? `* ${item.experience}` : "" }
+                        </div>
+                        <p className={cardStyles.dateContainer}>
+                          <CalendarDays className={iconSize.medium} />
+                          {item.date}
+                        </p>
+                        <p className={cardStyles.dateContainer}>
+                          <Clock className={iconSize.medium} />
+                          {item.time}
+                        </p>
+                        <div className={cardStyles.badgesContainer}>
+                          <PaymentBadge payment={item.payment} />
+                          <StatusBadge itemStatus={item.status} />
+                        </div>
+                        {item.status === "Rescheduled" && item.rescheduledTo ? (
+                          <div className={cardStyles.rescheduledText}>
+                            Reschedule to{" "}
+                            <span className={cardStyles.rescheduledSpan}>
+                              {item.rescheduledTo.date} : {item.rescheduledTo.time}
+                            </span>
+                          </div>
+                        ): (
+                          null
+                        )}
+                    </div>
+                ))}
+            </div>
+            <h1 className={appointmentPageStyles.serviceTitle}>
+                Your Booked Services
+            </h1>
+            {loadingServices && (
+                <div className={appointmentPageStyles.serviceLoadingText}>
+                    Loading service Bookings....
+                </div>
+            )}
+
+            {!loadingServices && serviceData.length === 0 && (
+                <div className={appointmentPageStyles.serviceEmptyStateText}>
+
+                    No service bookings found.
+                </div>
+            )}
+            {/* paste */}
         </div>
     </div>
   )

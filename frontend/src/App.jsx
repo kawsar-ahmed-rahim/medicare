@@ -10,9 +10,27 @@ import DHome from "./pages/DHome";
 import List from "./doctor/List";
 import EditProfile from "./doctor/EditProfile";
 import Appointment from "./pages/Appointment";
+import { useEffect } from "react";
+import VerifyPaymentPage from "../VerifyPaymentPage";
+
+const ScrollToTop = () => {
+  const {pathname} = useLocation();
+
+  useEffect(()=>{
+     window.scrollTo(0,0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  },[pathname]);
+  return null;
+};
+// scroll button
 const App = () => {
+  //use
+
   return (
-    <div>
+   <>
+   <ScrollToTop />
+    <div className="overflow-x-hidden bg-white text-gray-900">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/doctors" element={<Doctors />} />
@@ -30,8 +48,20 @@ const App = () => {
           path="/doctor-admin/:id/profile/edit"
           element={<EditProfile />}
         />
+
+        {/* for the payment verifications */}
+         <Route
+          path="/appointment/success"
+          element={<VerifyPaymentPage />}
+        />
+        <Route
+          path="/appointment/cancel"
+          element={<VerifyPaymentPage />}
+        />
       </Routes>
     </div>
+    <ScrollButton />
+   </>
   );
 };
 
