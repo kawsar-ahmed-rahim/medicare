@@ -154,7 +154,7 @@ export const createAppointment = async (req, res) => {
         success: false,
         message: "Authentication is required.",
       });
-    if (!doctorId || !patientName || !mobile || !data || !time) {
+    if (!doctorId || !patientName || !mobile || !date || !time) {
       return res.status(400).json({
         success: false,
         message: "all fields are required",
@@ -169,9 +169,9 @@ export const createAppointment = async (req, res) => {
     }
     const existingBooking = await Appointment.findOne({
       doctorId,
-      createdBY: clerkUserId,
-      date: String(time),
-      date: String(time),
+      createdBy: clerkUserId,
+      date: String(date),
+      time: String(time),
       status: { $ne: "cancelled" },
     }).lean();
 
