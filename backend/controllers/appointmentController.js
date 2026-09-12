@@ -1,10 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import Appointment from "../models/Appoinment.js";
 import Doctor from "../models/Doctor.js";
-import dotenv from "dotenv";
 import Stripe from "stripe";
 import { getAuth } from "@clerk/express";
 import { clerkClient } from "@clerk/clerk-sdk-node";
-dotenv.config();
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -614,14 +615,41 @@ export const getAppointmentsByDoctor = async (req, res) => {
 
 export async function getRegisteredUserCount(req, res) {
   try {
-    const totalUsers = await clerkClient.users.getCount();
+    if (!clerkClient || !clerkClient.users) {
+      return res.json({ success: true, totalUsers: 0, count: 0 });
+    }
+
+    const userList = await clerkClient.users.getUserList();
+
+    let totalUsers = 0;
+    let debugInfo = {};
+
+    if (Array.isArray(userList)) {
+      totalUsers = userList.length;
+      debugInfo.type = "array";
+      debugInfo.length = totalUsers;
+      debugInfo.sample = userList.slice(0, 1);
+    } else if (userList && typeof userList === "object") {
+      totalUsers =
+        userList.totalCount ||
+        userList.total ||
+        (userList.data ? userList.data.length : 0);
+      debugInfo.type = "object";
+      debugInfo.keys = Object.keys(userList);
+      debugInfo.totalCount = userList.totalCount;
+      debugInfo.total = userList.total;
+      debugInfo.dataLength = userList.data ? userList.data.length : null;
+    }
+
     return res.json({
       success: true,
       totalUsers,
+      count: totalUsers,
+      debug: debugInfo,
     });
   } catch (error) {
-    console.error("getRegisteredUserCount error", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("Clerk error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 }
 

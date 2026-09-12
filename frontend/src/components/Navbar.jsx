@@ -67,7 +67,8 @@ const Navbar = () => {
   return (
     <>
       <div className={navbarStyles.navbarBorder}></div>
-      <nav ref={navRef}
+      <nav
+        ref={navRef}
         className={`${navbarStyles.navbarContainer} ${showNavbar ? navbarStyles.navbarVisible : navbarStyles.navbarHidden}`}
       >
         <div className={navbarStyles.contentWrapper}>
@@ -163,14 +164,23 @@ const Navbar = () => {
                 );
               })}
               <SignedOut>
-                <Link to="/doctor-admin/login" className={navbarStyles.mobileDoctorAdminButton} onClick={()=> setIsOpen(false)}>Doctor Admin</Link>
+                <Link
+                  to="/doctor-admin/login"
+                  className={navbarStyles.mobileDoctorAdminButton}
+                  onClick={() => setIsOpen(false)}
+                >
+                  Doctor Admin
+                </Link>
                 <div className={navbarStyles.mobileLoginContainer}>
-                    <button onClick={()=>{
-                        setIsOpen(false);
-                        clerk.openSignIn()
-                    }} className={navbarStyles.mobileLoginButton}>
-                        Login
-                    </button>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      clerk.openSignIn();
+                    }}
+                    className={navbarStyles.mobileLoginButton}
+                  >
+                    Login
+                  </button>
                 </div>
               </SignedOut>
             </div>
