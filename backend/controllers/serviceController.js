@@ -168,7 +168,7 @@ export async function updateService(req, res) {
         message: "Server Error",
       });
     const b = req.body || {};
-    const updatedData = {};
+    const updateData = {};
 
     if (b.name !== undefined) updateData.name = b.name;
     if (b.about !== undefined) updateData.about = b.about;

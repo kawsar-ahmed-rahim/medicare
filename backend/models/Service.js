@@ -28,6 +28,6 @@ const serviceSchema = new mongoose.Schema(
 
 serviceSchema.index({ name: "text", shortDescription: "text" });
 
-const Service = mongoose.models.Service || mongoose.model("service", serviceSchema)
-
+const Service =
+  mongoose.models.Service || mongoose.model("Service", serviceSchema);
 export default Service;

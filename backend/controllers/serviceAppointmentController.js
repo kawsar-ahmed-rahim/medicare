@@ -15,6 +15,8 @@ const safeNumber = (val) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 function parseTimeString(timeStr) {
   if (!timeStr || typeof timeStr !== "string") return null;
   const t = timeStr.trim();
@@ -352,15 +354,16 @@ export const createServiceAppointment = async (req, res) => {
 export const confirmServicePayment = async (req, res) => {
   try {
     const { session_id } = req.query;
-    if (!success_id)
+    // FIX: was `success_id` (undefined variable)
+    if (!session_id)
       return res.status(400).json({
         success: false,
-        message: " session Id is req",
+        message: "session_id is required",
       });
     if (!stripe)
       return res.status(500).json({
         success: false,
-        message: " Stripe is not configured",
+        message: "Stripe is not configured",
       });
     let session;
     try {
@@ -372,7 +375,8 @@ export const confirmServicePayment = async (req, res) => {
         .json({ success: false, message: "Stripe session is not found" });
     }
 
-    if (!success)
+    // FIX: was `success` (undefined variable)
+    if (!session)
       return res.status(404).json({
         success: false,
         message: "Invalid session",
@@ -441,12 +445,15 @@ export const getServiceAppointments = async (req, res) => {
     if (mobile) filter.mobile = mobile;
     if (status) filter.status = status;
     if (search) {
-      const re = new RegExp(search, "i");
+      // FIX: escape user input so characters like "(" don't crash RegExp
+      const re = new RegExp(escapeRegex(search), "i");
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
     }
+    // FIX: removed populate("ServiceId") (wrong case, would throw).
+    // Service name/image are already stored on each appointment.
+    // FIX: sort field is `createdAt`, not `createAt`.
     const appointments = await ServiceAppointment.find(filter)
-      .populate("ServiceId", "name imageUrl imageSmall")
-      .sort({ createAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -484,12 +491,12 @@ export const getServiceAppointmentById = async (req, res) => {
 };
 
 // to update an appointment
-
 export const updateServiceAppointment = async (req, res) => {
   try {
     const { id } = req.params;
     const body = req.body || {};
-    const update = {};
+    // FIX: was `const update = {}` but every line below uses `updates`
+    const updates = {};
     if (body.status !== undefined) updates.status = body.status;
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.payment !== undefined) updates.payment = body.payment;
@@ -525,7 +532,7 @@ export const updateServiceAppointment = async (req, res) => {
     }
 
     if (updates.payment) {
-      const method = updates.payment.method || updates.payment?.method;
+      const method = updates.payment.method;
       if (method && String(method).toLowerCase() === "online")
         updates.status = updates.status || "Confirmed";
       if (updates.payment.status && updates.payment.status === "Confirmed") {
@@ -547,21 +554,18 @@ export const updateServiceAppointment = async (req, res) => {
         success: false,
         message: "not found",
       });
-    return (
-      res,
-      json({
-        success: true,
-        data: updated,
-      })
-    );
+    // FIX: was `return (res, json({...}))` (comma operator, calls undefined json)
+    return res.json({
+      success: true,
+      data: updated,
+    });
   } catch (error) {
-    console.error("updatedServiceAppointment error:", error);
+    console.error("updateServiceAppointment error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
 // to cancel the serviceAppointment
-
 export const cancelServiceAppointment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -592,9 +596,20 @@ export const getServiceAppointmentStats = async (req, res) => {
     const services = await Service.aggregate([
       {
         $lookup: {
-          from: "serviceAppointments",
-          localField: "_id",
-          foreignField: "serviceId",
+          // FIX: use the real collection name instead of guessing
+          from: ServiceAppointment.collection.name,
+          let: { sid: "$_id" },
+          pipeline: [
+            {
+              // FIX: compare as strings so it works whether serviceId is
+              // stored as an ObjectId or as a String in the appointments
+              $match: {
+                $expr: {
+                  $eq: [{ $toString: "$serviceId" }, { $toString: "$$sid" }],
+                },
+              },
+            },
+          ],
           as: "appointments",
         },
       },
@@ -631,6 +646,7 @@ export const getServiceAppointmentStats = async (req, res) => {
           completed: 1,
           canceled: 1,
           earning: 1,
+          createdAt: 1,
         },
       },
       { $sort: { createdAt: -1 } },
