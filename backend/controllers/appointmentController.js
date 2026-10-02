@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import Appointment from "../models/Appoinment.js";
+import { verifyToken } from "@clerk/backend";
+import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import Stripe from "stripe";
 import { getAuth } from "@clerk/express";
@@ -10,6 +11,7 @@ import { clerkClient } from "@clerk/clerk-sdk-node";
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const MAJOR_ADMIN_ID = process.env.MAJOR_ADMIN_ID || null;
+const ADMIN_CLERK_SECRET_KEY = process.env.ADMIN_CLERK_SECRET_KEY || null;
 const stripe = STRIPE_KEY
   ? new Stripe(STRIPE_KEY, { apiVersion: "2023-10-16" })
   : null;
@@ -29,6 +31,7 @@ const buildFrontendBase = (req) => {
   return null;
 };
 
+// user from the MAIN Clerk app (verified by clerkMiddleware)
 function resolveClerkUserId(req) {
   try {
     const auth = req.auth || {};
@@ -46,8 +49,39 @@ function resolveClerkUserId(req) {
   }
 }
 
-// to get Appointments
+// true only if the bearer token comes from the ADMIN Clerk app
+// AND belongs to MAJOR_ADMIN_ID
+async function isAdminRequest(req) {
+  try {
+    if (!ADMIN_CLERK_SECRET_KEY || !MAJOR_ADMIN_ID) {
+      console.log("ADMIN DEBUG: missing env", {
+        hasAdminSecret: !!ADMIN_CLERK_SECRET_KEY,
+        hasMajorAdminId: !!MAJOR_ADMIN_ID,
+      });
+      return false;
+    }
+    const bearer = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!bearer) {
+      console.log("ADMIN DEBUG: no bearer token on request");
+      return false;
+    }
+    const result = await verifyToken(bearer, {
+      secretKey: ADMIN_CLERK_SECRET_KEY,
+    });
+    // newer @clerk/backend returns { data, errors }, older versions return the payload
+    const payload = result?.data ?? result;
+    if (result?.errors?.length) {
+      console.log("ADMIN DEBUG: verify errors", result.errors);
+    }
+    return payload?.sub === MAJOR_ADMIN_ID;
+  } catch (e) {
+    console.log("ADMIN DEBUG: verifyToken threw:", e?.message || e);
+    return false;
+  }
+}
 
+// to get Appointments
+// NOTE: this trusts ?createdBy= / ?patientClerkId=, so keep its route admin-only.
 export const getAppointments = async (req, res) => {
   try {
     const {
@@ -96,23 +130,16 @@ export const getAppointments = async (req, res) => {
 // to getAppointments By patient
 export const getAppointmentByPatient = async (req, res) => {
   try {
-    const queryCreatedBy = req.query.createdBy || null;
-    const clerkUserId = req.auth?.userId || null;
-    const resolvedCreatedBy = queryCreatedBy || clerkUserId || null;
+    const clerkUserId = resolveClerkUserId(req);
 
-    console.log(
-      "resolvedCreatedBy (query or req.auth.userId): ",
-      resolvedCreatedBy,
-    );
-
-    if (!resolvedCreatedBy && !req.query.mobile) {
+    if (!clerkUserId) {
       return res.status(401).json({
         success: false,
-        message: "Server error",
+        message: "Authentication is required.",
       });
     }
-    const filter = {};
-    if (resolvedCreatedBy) filter.createdBy = resolvedCreatedBy;
+
+    const filter = { createdBy: clerkUserId };
     if (req.query.mobile) filter.mobile = req.query.mobile;
 
     const appointments = await Appointment.find(filter)
@@ -172,7 +199,7 @@ export const createAppointment = async (req, res) => {
       createdBy: clerkUserId,
       date: String(date),
       time: String(time),
-      status: { $ne: "cancelled" },
+      status: { $ne: "Canceled" },
     }).lean();
 
     if (existingBooking) {
@@ -362,6 +389,7 @@ export const createAppointment = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // to confirm the online payment and make it paid
 export const confirmPayment = async (req, res) => {
   try {
@@ -369,7 +397,7 @@ export const confirmPayment = async (req, res) => {
     if (!session_id)
       return res.status(400).json({
         success: false,
-        message: "Session Is is required.",
+        message: "Session Id is required.",
       });
     if (!stripe)
       return res.status(500).json({
@@ -378,7 +406,7 @@ export const confirmPayment = async (req, res) => {
       });
     let session;
     try {
-      session = await stripe.checkout.session.retrieve(session_id);
+      session = await stripe.checkout.sessions.retrieve(session_id);
     } catch (error) {
       console.error("stripe retrieve session error:", error);
       return res.status(500).json({ success: false, message: "Server error" });
@@ -406,16 +434,22 @@ export const confirmPayment = async (req, res) => {
       { new: true },
     );
 
-    // fallback: try match via metadata (doctorId + mobile + patientName)
+    // fallback: match via metadata (doctor + mobile + patient + the same user)
     if (!appt) {
       const meta = session.metadata || {};
-      if (meta.doctorId && meta.mobile && meta.patientName) {
+      if (
+        meta.doctorId &&
+        meta.mobile &&
+        meta.patientName &&
+        meta.clerkUserId
+      ) {
         appt = await Appointment.findOneAndUpdate(
           {
             doctorId: meta.doctorId,
             mobile: meta.mobile,
             patientName: meta.patientName,
-            fees: Math.round((session.amount_total || 0) / 100) || undefined,
+            createdBy: meta.clerkUserId,
+            "payment.status": "Pending",
           },
           {
             "payment.status": "Paid",
@@ -427,23 +461,6 @@ export const confirmPayment = async (req, res) => {
           { new: true },
         );
       }
-    }
-
-    // last attempt: find appointment created in last 15 minutes with matching amount
-    if (!appt) {
-      const amount = Math.round((session.amount_total || 0) / 100);
-      const fifteenAgo = new Date(Date.now() - 1000 * 60 * 15);
-      appt = await Appointment.findOneAndUpdate(
-        { fees: amount, createdAt: { $gte: fifteenAgo } },
-        {
-          "payment.status": "Paid",
-          "payment.providerId": session.payment_intent || null,
-          status: "Confirmed",
-          paidAt: new Date(),
-          sessionId: session_id,
-        },
-        { new: true },
-      );
     }
 
     if (!appt) {
@@ -518,11 +535,11 @@ export const updateAppointment = async (req, res) => {
 };
 
 // to cancelAppointment
-
+// allowed: the patient who booked it, the doctor's owner (main Clerk app),
+// or the admin (token from the admin Clerk app, user id = MAJOR_ADMIN_ID)
 export const cancelAppointment = async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body || {};
     const appt = await Appointment.findById(id);
 
     if (!appt)
@@ -530,7 +547,19 @@ export const cancelAppointment = async (req, res) => {
         success: false,
         message: "Appointment not found",
       });
-    appt.status = "Cancelled";
+
+    const clerkUserId = resolveClerkUserId(req);
+    const isAdmin = await isAdminRequest(req);
+
+    if (
+      !isAdmin &&
+      (!clerkUserId ||
+        (appt.createdBy !== clerkUserId && appt.owner !== clerkUserId))
+    ) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    appt.status = "Canceled";
     await appt.save();
     return res.json({ success: true, appointment: appt });
   } catch (error) {
@@ -565,7 +594,7 @@ export const getStats = async (req, res) => {
   }
 };
 
-// to getAppointments by doctor\
+// to getAppointments by doctor
 export const getAppointmentsByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
@@ -612,7 +641,6 @@ export const getAppointmentsByDoctor = async (req, res) => {
 };
 
 // to get Register user count
-
 export async function getRegisteredUserCount(req, res) {
   try {
     if (!clerkClient || !clerkClient.users) {
@@ -622,30 +650,20 @@ export async function getRegisteredUserCount(req, res) {
     const userList = await clerkClient.users.getUserList();
 
     let totalUsers = 0;
-    let debugInfo = {};
 
     if (Array.isArray(userList)) {
       totalUsers = userList.length;
-      debugInfo.type = "array";
-      debugInfo.length = totalUsers;
-      debugInfo.sample = userList.slice(0, 1);
     } else if (userList && typeof userList === "object") {
       totalUsers =
         userList.totalCount ||
         userList.total ||
         (userList.data ? userList.data.length : 0);
-      debugInfo.type = "object";
-      debugInfo.keys = Object.keys(userList);
-      debugInfo.totalCount = userList.totalCount;
-      debugInfo.total = userList.total;
-      debugInfo.dataLength = userList.data ? userList.data.length : null;
     }
 
     return res.json({
       success: true,
       totalUsers,
       count: totalUsers,
-      debug: debugInfo,
     });
   } catch (error) {
     console.error("Clerk error:", error);

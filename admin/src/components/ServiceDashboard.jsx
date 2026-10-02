@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   ClipboardList,
   Calendar,
-  DollarSign,
   CheckCircle,
   XCircle,
   Search,
@@ -10,18 +9,20 @@ import {
 } from "lucide-react";
 import { serviceDashboardStyles } from "../assets/dummyStyles";
 
-function normalizeService(doc) {
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const CURRENCY = "₹"; // change to "৳" if needed
+const INITIAL_COUNT = 8;
+
+function normalizeService(doc, index = 0) {
   if (!doc) return null;
-  const id = doc._id || doc.id || String(Math.random()).slice(2);
+  // stable fallback id (a random id changes on every fetch and breaks React keys)
+  const id = doc._id || doc.id || `service-${index}`;
   const name = doc.name || doc.title || doc.serviceName || "Untitled Service";
   const price =
     Number(doc.price ?? doc.fee ?? doc.fees ?? doc.cost ?? doc.amount) || 0;
   const image =
-    doc.imageUrl ||
-    doc.image ||
-    doc.avatar ||
-    `https://i.pravatar.cc/150?u=${id}`;
-  // various possible stat shapes
+    doc.imageUrl || doc.image || doc.avatar || "/placeholder-service.png";
+
   const totalAppointments =
     doc.totalAppointments ??
     doc.appointments?.total ??
@@ -54,13 +55,21 @@ function normalizeService(doc) {
   };
 }
 
-const API_BASE = "http://localhost:4000";
+function normalizeList(list) {
+  return (list || []).map(normalizeService).filter(Boolean);
+}
+
+function formatCurrency(v) {
+  return `${CURRENCY}${Number(v || 0).toLocaleString()}`;
+}
 
 const ServiceDashboard = ({ services: servicesProp }) => {
+  const hasParentData = Array.isArray(servicesProp);
+
   const [services, setServices] = useState(
-    Array.isArray(servicesProp) ? servicesProp.map(normalizeService) : [],
+    hasParentData ? normalizeList(servicesProp) : [],
   );
-  const [loading, setLoading] = useState(!Array.isArray(servicesProp));
+  const [loading, setLoading] = useState(!hasParentData);
   const [error, setError] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,78 +77,75 @@ const ServiceDashboard = ({ services: servicesProp }) => {
 
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
-  const pollHandleRef = useRef(null);
 
-  function buildFetchOptions() {
-    const opts = {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    const token = localStorage.getItem("authToken");
-    if (token) opts.headers["Authorization"] = `Bearer ${token}`;
-    return opts;
-  }
+  const fetchServices = useCallback(
+    async ({ showLoading = true } = {}) => {
+      if (fetchingRef.current) return;
+      fetchingRef.current = true;
+      try {
+        if (showLoading) {
+          setLoading(true);
+          setError(null);
+        }
 
-  async function fetchServices({ showLoading = true } = {}) {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-    try {
-      if (showLoading) {
-        setLoading(true);
-        setError(null);
-      }
-      const url = `${API_BASE}/api/service-appointments/stats/summary`;
-      const res = await fetch(url, buildFetchOptions());
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          body?.message || `Failed to fetch services (${res.status})`,
+        const headers = { "Content-Type": "application/json" };
+        const token = localStorage.getItem("authToken");
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const res = await fetch(
+          `${API_BASE}/api/service-appointments/stats/summary`,
+          { method: "GET", headers },
         );
-      }
-      const body = await res.json();
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            body?.message || `Failed to fetch services (${res.status})`,
+          );
+        }
+        const body = await res.json();
 
-      let list = [];
-      if (Array.isArray(body)) list = body;
-      else if (Array.isArray(body.services)) list = body.services;
-      else if (Array.isArray(body.data)) list = body.data;
-      else if (Array.isArray(body.items)) list = body.items;
-      else {
-        const maybeArray = Object.values(body).find((v) => Array.isArray(v));
-        if (maybeArray) list = maybeArray;
-      }
+        let list = [];
+        if (Array.isArray(body)) list = body;
+        else if (Array.isArray(body.services)) list = body.services;
+        else if (Array.isArray(body.data)) list = body.data;
+        else if (Array.isArray(body.items)) list = body.items;
+        else {
+          const maybeArray = Object.values(body).find((v) => Array.isArray(v));
+          if (maybeArray) list = maybeArray;
+        }
 
-      const normalized = (list || []).map(normalizeService).filter(Boolean);
-      if (mountedRef.current) {
-        setServices(normalized);
-        setError(null);
+        if (mountedRef.current) {
+          setServices(normalizeList(list));
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Service fetch error:", err);
+        // only replace the table with an error on a user-visible load;
+        // a failed background poll keeps the last good data on screen
+        if (mountedRef.current && showLoading) {
+          setError(err.message || "Failed to load services");
+        }
+      } finally {
+        if (mountedRef.current && showLoading) setLoading(false);
+        fetchingRef.current = false;
       }
-    } catch (err) {
-      console.error("Service fetch error:", err);
-      if (mountedRef.current) {
-        setError(err.message || "Failed to load services");
-      }
-    } finally {
-      if (mountedRef.current && showLoading) setLoading(false);
-      fetchingRef.current = false;
-    }
-  }
+    },
+    [],
+  );
 
+  // optional global refresh hook (kept from original)
   useEffect(() => {
     window.refreshServices = () => fetchServices({ showLoading: true });
     return () => {
-      try {
-        delete window.refreshServices;
-      } catch {}
+      delete window.refreshServices;
     };
-  }, []);
+  }, [fetchServices]);
 
   useEffect(() => {
     mountedRef.current = true;
-    if (Array.isArray(servicesProp)) {
-      setServices(servicesProp.map(normalizeService));
+
+    if (hasParentData) {
+      setServices(normalizeList(servicesProp));
       setLoading(false);
       return () => {
         mountedRef.current = false;
@@ -147,70 +153,46 @@ const ServiceDashboard = ({ services: servicesProp }) => {
     }
 
     fetchServices({ showLoading: true });
-    function startPolling() {
-      if (pollHandleRef.current) return;
-      pollHandleRef.current = setInterval(() => {
-        if (document.visibilityState === "visible")
-          fetchServices({ showLoading: false });
-      }, 10000);
-    }
 
-    function stopPolling() {
-      if (pollHandleRef.current) {
-        clearInterval(pollHandleRef.current);
-        pollHandleRef.current = null;
-      }
-    }
-
-    startPolling();
-
-    function onFocus() {
-      fetchServices({ showLoading: false });
-    }
-    window.addEventListener("focus", onFocus);
-
-    function onServicesUpdated() {
-      fetchServices({ showLoading: false });
-    }
-    window.addEventListener("services:updated", onServicesUpdated);
-
-    function onStorage(e) {
-      if (e?.key === "service_bookings_updated") {
+    const pollHandle = setInterval(() => {
+      if (document.visibilityState === "visible")
         fetchServices({ showLoading: false });
-      }
-    }
+    }, 10000);
+
+    const refresh = () => fetchServices({ showLoading: false });
+    const onStorage = (e) => {
+      if (e?.key === "service_bookings_updated") refresh();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    window.addEventListener("focus", refresh);
+    window.addEventListener("services:updated", refresh);
     window.addEventListener("storage", onStorage);
-
-    function onVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        fetchServices({ showLoading: false });
-      }
-    }
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       mountedRef.current = false;
-      stopPolling();
-      window.removeEventListener("focus", onFocus);
-      window.removeEventListener("services:updated", onServicesUpdated);
+      clearInterval(pollHandle);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("services:updated", refresh);
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [servicesProp]);
+  }, [servicesProp, hasParentData, fetchServices]);
 
   const filteredServices = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return services;
-    const qNum = Number(q);
-    return services.filter((s) => {
-      if (s.name.toLowerCase().includes(q)) return true;
-      if (!Number.isNaN(qNum) && s.price <= qNum) return true;
-      if (s.price.toString().includes(q)) return true;
-      return false;
-    });
+    // match by name or price text (no more "price <= number" matching,
+    // which returned unrelated services for any numeric search)
+    return services.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) || s.price.toString().includes(q),
+    );
   }, [services, searchQuery]);
 
-  const INITIAL_COUNT = 8;
   const visibleServices = showAll
     ? filteredServices
     : filteredServices.slice(0, INITIAL_COUNT);
@@ -235,10 +217,6 @@ const ServiceDashboard = ({ services: servicesProp }) => {
     );
   }, [filteredServices]);
 
-  function formatCurrency(v) {
-    return `$${Number(v || 0).toLocaleString()}`;
-  }
-
   return (
     <div className={serviceDashboardStyles.container}>
       <div className={serviceDashboardStyles.innerContainer}>
@@ -261,16 +239,12 @@ const ServiceDashboard = ({ services: servicesProp }) => {
             </div>
             <button
               onClick={() => {
-                if (Array.isArray(servicesProp)) return;
+                if (hasParentData) return;
                 fetchServices({ showLoading: true });
               }}
-              className={serviceDashboardStyles.refresh.button(
-                Array.isArray(servicesProp),
-              )}
+              className={serviceDashboardStyles.refresh.button(hasParentData)}
               title={
-                Array.isArray(servicesProp)
-                  ? "Services provided by parent component"
-                  : "Refresh"
+                hasParentData ? "Services provided by parent component" : "Refresh"
               }
             >
               Refresh
@@ -284,14 +258,13 @@ const ServiceDashboard = ({ services: servicesProp }) => {
             label="Total Services"
             value={totals.totalServices}
           />
-
           <StatCard
             icon={<Calendar size={18} />}
             label="Total Appointments"
             value={totals.totalAppointments}
           />
           <StatCard
-            icon={<DollarSign size={18} />}
+            icon={<BadgeIndianRupee size={18} />}
             label="Total earnings"
             value={formatCurrency(totals.totalEarning)}
           />
@@ -327,6 +300,7 @@ const ServiceDashboard = ({ services: servicesProp }) => {
             )}
           </div>
         </div>
+
         {/* table list */}
         <div className={serviceDashboardStyles.table.container}>
           <div className={serviceDashboardStyles.table.headerMd}>
@@ -378,6 +352,7 @@ const ServiceDashboard = ({ services: servicesProp }) => {
                 const earning = s.completed * s.price;
                 return (
                   <div key={s.id} className={serviceDashboardStyles.table.row}>
+                    {/* tablet */}
                     <div className={serviceDashboardStyles.table.tabletView}>
                       <div className="flex items-center gap-3">
                         <div
@@ -429,6 +404,7 @@ const ServiceDashboard = ({ services: servicesProp }) => {
                       </div>
                     </div>
 
+                    {/* desktop */}
                     <div className={serviceDashboardStyles.table.desktopView}>
                       <div className="col-span-5 flex items-center gap-4">
                         <div
@@ -481,6 +457,7 @@ const ServiceDashboard = ({ services: servicesProp }) => {
                       </div>
                     </div>
 
+                    {/* mobile */}
                     <div className={serviceDashboardStyles.table.mobileView}>
                       <div className="flex items-start gap-3">
                         <div

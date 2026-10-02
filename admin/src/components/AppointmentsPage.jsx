@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Calendar, BadgeIndianRupee } from "lucide-react";
+import { useAuth } from "@clerk/react";
 import {
   pageStyles,
   statusClasses,
@@ -8,90 +9,84 @@ import {
 
 const API_BASE = "http://localhost:4000";
 
-// helpers function
+// ---------- helpers ----------
 function formatDateISO(iso) {
-  try {
-    const d = new Date(iso + "T00:00:00");
-    return d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch (e) {
-    return iso;
-  }
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function dateTimeFromSlot(slot) {
   try {
-    const [y, m, d] = slot.date.split("-");
+    const [y, m, d] = (slot.date || "").split("-");
     const base = new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0, 0);
 
-    const [time, ampm] = slot.time.split(" ");
+    const [time, ampm] = (slot.time || "").split(" ");
     let [hh, mm] = time.split(":").map(Number);
     if (ampm === "PM" && hh !== 12) hh += 12;
     if (ampm === "AM" && hh === 12) hh = 0;
     base.setHours(hh, mm, 0, 0);
-    return base;
+    return base; // may be Invalid Date; callers handle NaN
   } catch (e) {
-    return new Date(slot.date + "T00:00:00");
+    return new Date(NaN);
   }
 }
 
+// single place that normalizes an appointment from the API
+function normalizeAppointment(a) {
+  return {
+    id: a._id || a.id,
+    patientName: a.patientName || "",
+    age: a.age || "",
+    gender: a.gender || "",
+    mobile: a.mobile || "",
+    doctorName: (a.doctorId && a.doctorId.name) || a.doctorName || "",
+    speciality:
+      (a.doctorId && a.doctorId.specialization) ||
+      a.speciality ||
+      a.specialization ||
+      "General",
+    fee: typeof a.fees === "number" ? a.fees : a.fee || 0,
+    slot: {
+      date: a.date || (a.slot && a.slot.date) || "",
+      time: a.time || (a.slot && a.slot.time) || "00:00 AM",
+    },
+    status: a.status || (a.payment && a.payment.status) || "Pending",
+    raw: a, // keep original in case we need it
+  };
+}
+
 const AppointmentsPage = () => {
-  const isAdmin = true;
+  const { getToken } = useAuth();
+  const isAdmin = true; // TODO: derive from real auth; backend must also enforce this
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true); // true so "No appointments" doesn't flash
+  const [error, setError] = useState(null); // load errors (replace the grid)
+  const [actionError, setActionError] = useState(null); // cancel errors (shown above grid)
 
   const [query, setQuery] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterSpeciality, setFilterSpeciality] = useState("all");
   const [showAll, setShowAll] = useState(false);
 
-  // fetch list from server
+  // fetch list from server (search/filtering is done client-side below)
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const q = query.trim();
-        const url = `${API_BASE}/api/appointments?limit=200${
-          q ? `&search=${encodeURIComponent(q)}` : ""
-        }`;
-        const res = await fetch(url);
+        const res = await fetch(`${API_BASE}/api/appointments?limit=200`);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body?.message || `Failed to fetch (${res.status})`);
         }
         const data = await res.json();
-        const items = (data?.appointments || []).map((a) => {
-          const doctorName =
-            (a.doctorId && a.doctorId.name) || a.doctorName || "";
-          const speciality =
-            (a.doctorId && a.doctorId.specialization) ||
-            a.speciality ||
-            a.specialization ||
-            "General";
-          const fee = typeof a.fees === "number" ? a.fees : a.fee || 0;
-          return {
-            id: a._id || a.id,
-            patientName: a.patientName || "",
-            age: a.age || "",
-            gender: a.gender || "",
-            mobile: a.mobile || "",
-            doctorName,
-            speciality,
-            fee,
-            slot: {
-              date: a.date || (a.slot && a.slot.date) || "",
-              time: a.time || (a.slot && a.slot.time) || "00:00 AM",
-            },
-            status: a.status || (a.payment && a.payment.status) || "Pending",
-            raw: a, // keep original in case we need it
-          };
-        });
-        setAppointments(items);
+        setAppointments((data?.appointments || []).map(normalizeAppointment));
       } catch (err) {
         console.error("Load appointments error:", err);
         setError(err.message || "Failed to load appointments");
@@ -128,8 +123,8 @@ const AppointmentsPage = () => {
 
   const sortedFiltered = useMemo(() => {
     return filtered.slice().sort((a, b) => {
-      const da = dateTimeFromSlot(a.slot).getTime();
-      const db = dateTimeFromSlot(b.slot).getTime();
+      const da = dateTimeFromSlot(a.slot).getTime() || 0;
+      const db = dateTimeFromSlot(b.slot).getTime() || 0;
       return db - da;
     });
   }, [filtered]);
@@ -139,7 +134,7 @@ const AppointmentsPage = () => {
     [sortedFiltered, showAll],
   );
 
-  //  if admin want to cancel
+  // admin cancel
   async function adminCancelAppointment(id) {
     const appt = appointments.find((x) => x.id === id);
     if (!appt) return;
@@ -158,15 +153,22 @@ const AppointmentsPage = () => {
     );
     if (!ok) return;
 
+    setActionError(null);
+
     try {
+      // optimistic update
       setAppointments((prev) =>
         prev.map((p) => (p.id === id ? { ...p, status: "Canceled" } : p)),
       );
-      setShowAll(true);
+
+      const token = await getToken();
 
       const res = await fetch(`${API_BASE}/api/appointments/${id}/cancel`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -193,34 +195,17 @@ const AppointmentsPage = () => {
       }
     } catch (err) {
       console.error("Cancel error:", err);
-      setError(err.message || "Failed to cancel appointment");
+      setActionError(err.message || "Failed to cancel appointment");
+      // roll back by reloading from server
       try {
         const reload = await fetch(`${API_BASE}/api/appointments?limit=200`);
         if (reload.ok) {
           const body = await reload.json();
-          const items = (body?.appointments || []).map((a) => ({
-            id: a._id || a.id,
-            patientName: a.patientName || "",
-            age: a.age || "",
-            gender: a.gender || "",
-            mobile: a.mobile || "",
-            doctorName: (a.doctorId && a.doctorId.name) || a.doctorName || "",
-            speciality:
-              (a.doctorId && a.doctorId.specialization) ||
-              a.speciality ||
-              a.specialization ||
-              "General",
-            fee: typeof a.fees === "number" ? a.fees : a.fee || 0,
-            slot: {
-              date: a.date || (a.slot && a.slot.date) || "",
-              time: a.time || (a.slot && a.slot.time) || "00:00 AM",
-            },
-            status: a.status || (a.payment && a.payment.status) || "Pending",
-            raw: a,
-          }));
-          setAppointments(items);
+          setAppointments((body?.appointments || []).map(normalizeAppointment));
         }
-      } catch (e) {}
+      } catch (e) {
+        // ignore reload failure
+      }
     }
   }
 
@@ -277,6 +262,7 @@ const AppointmentsPage = () => {
                     setFilterSpeciality("all");
                     setShowAll(false);
                     setError(null);
+                    setActionError(null);
                   }}
                   className={pageStyles.clearButton}
                 >
@@ -286,6 +272,10 @@ const AppointmentsPage = () => {
             </div>
           </div>
         </header>
+
+        {actionError && (
+          <div className={pageStyles.errorContainer}>{actionError}</div>
+        )}
 
         {loading ? (
           <div className={pageStyles.loadingErrorContainer}>Loading...</div>
@@ -308,7 +298,7 @@ const AppointmentsPage = () => {
                   key={a.id}
                   style={{
                     animation: `fadeUp 420ms cubic-bezier(.2,.9,.2,1) forwards`,
-                    animationDelay: `${idx * 70}ms`,
+                    animationDelay: `${Math.min(idx, 10) * 70}ms`,
                     opacity: 0,
                   }}
                   className={pageStyles.card}

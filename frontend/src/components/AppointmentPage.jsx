@@ -1,7 +1,12 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useAuth, useUser } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import { Toaster } from "react-hot-toast";
-import { appointmentPageStyles } from "../assets/dummyStyles";
+import {
+  appointmentPageStyles,
+  badgeStyles,
+  iconSize,
+  cardStyles,
+} from "../assets/dummyStyles";
 import {
   CreditCard,
   Wallet,
@@ -13,87 +18,122 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const API = axios.create({ baseURL: API_BASE });
-//helper function
+const CURRENCY = "₹"; // change to "৳" if needed
+
+// ---------- helpers ----------
 function pad(n) {
   return String(n ?? 0).padStart(2, "0");
 }
 
+// Returns a valid Date or null (never "now" on failure)
 function parseDateTime(dateStr, timeStr) {
-  const fast = new Date(`${dateStr} ${timeStr}`);
+  if (!dateStr) return null;
+
+  const fast = new Date(`${dateStr} ${timeStr || ""}`.trim());
   if (!isNaN(fast)) return fast;
 
-  const parts = (dateStr || "").split(" ");
+  const parts = dateStr.split(" ");
   if (parts.length === 3) {
     const [d, m, y] = parts;
     const months = {
-      Jan: 0,
-      Feb: 1,
-      Mar: 2,
-      Apr: 3,
-      May: 4,
-      Jun: 5,
-      Jul: 6,
-      Aug: 7,
-      Sep: 8,
-      Oct: 9,
-      Nov: 10,
-      Dec: 11,
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
     };
     const month = months[m];
-    let [t, ampm] = (timeStr || "").split(" ");
-    let [hh, mm] = (t || "0:00").split(":");
-    hh = Number(hh || 0);
-    mm = Number(mm || 0);
+    if (month !== undefined) {
+      const [t, ampm] = (timeStr || "").split(" ");
+      const [hhRaw, mmRaw] = (t || "0:00").split(":");
+      let hh = Number(hhRaw || 0);
+      const mm = Number(mmRaw || 0);
 
-    if (ampm === "PM" && hh !== 12) hh += 12;
-    if (ampm === "AM" && hh === 12) hh = 0;
+      if (ampm === "PM" && hh !== 12) hh += 12;
+      if (ampm === "AM" && hh === 12) hh = 0;
 
-    return new Date(Number(y), month, Number(d), hh, mm);
+      const manual = new Date(Number(y), month, Number(d), hh, mm);
+      if (!isNaN(manual)) return manual;
+    }
   }
 
   const iso = new Date(dateStr);
   if (!isNaN(iso)) return iso;
-  return new Date();
+
+  return null;
+}
+
+function isPast(dateStr, timeStr) {
+  const dt = parseDateTime(dateStr, timeStr);
+  return dt ? new Date() >= dt : false;
 }
 
 function computeStatus(item) {
-  const now = new Date();
   if (!item) return "Pending";
 
   if (item.status === "Canceled") return "Canceled";
+
   if (item.status === "Rescheduled") {
-    if (
-      item.rescheduledTo &&
-      item.rescheduledTo.date &&
-      item.rescheduledTo.time
-    ) {
-      const dt = parseDateTime(
-        item.rescheduledTo.date,
-        item.rescheduledTo.time,
-      );
-      if (now >= dt) return "Completed";
+    if (item.rescheduledTo?.date && item.rescheduledTo?.time) {
+      if (isPast(item.rescheduledTo.date, item.rescheduledTo.time)) {
+        return "Completed";
+      }
     }
     return "Rescheduled";
   }
+
   if (item.status === "Completed") return "Completed";
+
   if (item.status === "Confirmed") {
-    const dtConfirmed = parseDateTime(item.date, item.time);
-    if (now >= dtConfirmed) return "Completed";
-    return "Confirmed";
-  }
-  if (item.status === "Pending") {
-    const dtPending = parseDateTime(item.date, item.time);
-    if (now >= dtPending) return "Completed";
-    return "Pending";
+    return isPast(item.date, item.time) ? "Completed" : "Confirmed";
   }
 
-  const dt = parseDateTime(item.date, item.time);
-  if (now >= dt) return "Completed";
+  // Pending stays Pending (it was never confirmed, so it isn't "Completed")
+  if (item.status === "Pending") return "Pending";
+
+  if (isPast(item.date, item.time)) return "Completed";
   return item.confirmed ? "Confirmed" : "Pending";
 }
 
+function normalizeRescheduled(rt) {
+  if (!rt) return null;
+  if (rt.date && rt.time) return { date: rt.date, time: rt.time };
+  if (!rt.date && !rt.dateString) return null;
+
+  if (
+    rt.date &&
+    (rt.hour !== undefined || rt.minute !== undefined || rt.ampm)
+  ) {
+    const hour = rt.hour ?? 0;
+    const minute = rt.minute ?? 0;
+    const ampm = rt.ampm ?? "";
+    return { date: rt.date, time: `${hour}:${pad(minute)} ${ampm}`.trim() };
+  }
+
+  return {
+    date: rt.date || rt.dateString || "",
+    time:
+      rt.time ||
+      (rt.hour
+        ? `${rt.hour}:${pad(rt.minute || 0)} ${rt.ampm || ""}`.trim()
+        : rt.timeString || ""),
+  };
+}
+
+function buildTime(a) {
+  if (a.time) return a.time;
+  if (a.hour !== undefined && a.minute !== undefined && a.ampm) {
+    return `${a.hour}:${pad(a.minute)} ${a.ampm}`;
+  }
+  if (a.hour !== undefined && a.ampm) return `${a.hour}:00 ${a.ampm}`;
+  return "";
+}
+
+function extractList(data) {
+  const fetched = data?.appointments ?? data?.data ?? data ?? [];
+  return Array.isArray(fetched) ? fetched : [];
+}
+
+// ---------- badges ----------
 const PaymentBadge = ({ payment }) => {
   return payment === "Online" ? (
     <span className={badgeStyles.paymentBadge.online}>
@@ -141,223 +181,82 @@ const StatusBadge = ({ itemStatus }) => {
     </span>
   );
 };
+
+// ---------- page ----------
 const AppointmentPage = () => {
   const { isLoaded, isSignedIn, getToken } = useAuth();
-  const { user } = useUser();
 
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
-
   const [doctorAppts, setDoctorAppts] = useState([]);
   const [serviceAppts, setServiceAppts] = useState([]);
-
-  const [appointmentsRaw, setAppointmentsRaw] = useState({
-    doctors: [],
-    services: [],
-  });
   const [error, setError] = useState(null);
 
+  const addError = (msg) =>
+    setError((prev) => (prev ? `${prev} | ${msg}` : msg));
+
   const loadDoctorAppointments = useCallback(async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !isSignedIn) return;
     setLoadingDoctors(true);
-    setError(null);
-
-    let token = null;
-    try {
-      token = await getToken();
-      console.log(
-        "Clerk token (frontend):",
-        token ? `${token.slice(0, 20)}...` : null,
-      );
-    } catch (err) {
-      console.error("Failed to get Clerk token (frontend):", err);
-    }
-
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    console.log("Outgoing headers for /api/appointments/me:", headers);
 
     try {
+      const token = await getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const resp = await API.get("/api/appointments/me", { headers });
-      console.log("Response from /api/appointments/me:", resp?.data);
+      const arr = extractList(resp?.data);
 
-      const fetched =
-        resp?.data?.appointments ?? resp?.data?.data ?? resp?.data ?? [];
-      const arr = Array.isArray(fetched) ? fetched : [];
-
-      const doctors = arr.filter((a) => {
-        return (
+      const doctors = arr.filter(
+        (a) =>
           (a.doctorId !== undefined && a.doctorId !== null) ||
           !!a.doctorName ||
-          !a.serviceId
-        );
-      });
-
+          !a.serviceId,
+      );
       setDoctorAppts(doctors);
-      setAppointmentsRaw((p) => ({ ...p, doctors: doctors }));
     } catch (err) {
       console.error(
         "Error calling /api/appointments/me:",
         err?.response?.data || err.message || err,
       );
-
-      if (user?.id) {
-        try {
-          console.log("Attempting debug request with ?createdBy=", user.id);
-          const debugResp = await API.get(
-            `/api/appointments/me?createdBy=${user.id}`,
-            { headers },
-          );
-          console.log("Debug fallback response:", debugResp?.data);
-
-          const fetched =
-            debugResp?.data?.appointments ??
-            debugResp?.data?.data ??
-            debugResp?.data ??
-            [];
-          const arr = Array.isArray(fetched) ? fetched : [];
-          const doctors = arr.filter(
-            (a) =>
-              (a.doctorId !== undefined && a.doctorId !== null) ||
-              !!a.doctorName ||
-              !a.serviceId,
-          );
-          setDoctorAppts(doctors);
-          setAppointmentsRaw((p) => ({ ...p, doctors }));
-        } catch (err2) {
-          console.error(
-            "Debug fallback failed (doctors):",
-            err2?.response?.data || err2.message || err2,
-          );
-          setError((prev) =>
-            prev
-              ? prev + " | Doctors failed"
-              : "Failed to load doctor appointments. Check console.",
-          );
-          setDoctorAppts([]);
-        }
-      } else {
-        setError((prev) =>
-          prev
-            ? prev + " | No user id for doctors"
-            : "Failed to load doctor appointments and no user id available for debug fallback.",
-        );
-        setDoctorAppts([]);
-      }
+      addError("Failed to load doctor appointments.");
+      setDoctorAppts([]);
     } finally {
       setLoadingDoctors(false);
     }
-  }, [isLoaded, getToken, user]);
+  }, [isLoaded, isSignedIn, getToken]);
 
   const loadServiceAppointments = useCallback(async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !isSignedIn) return;
     setLoadingServices(true);
-    setError(null);
-
-    let token = null;
-    try {
-      token = await getToken();
-    } catch (err) {
-      console.error("Failed to get Clerk token (frontend): err", err);
-    }
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    console.log("Outgoing headers for /api/service-appointments/me:", headers);
 
     try {
+      const token = await getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const resp = await API.get("/api/service-appointments/me", { headers });
-      console.log("Response from /api/service-appointments/me:", resp?.data);
-
-      const fetched =
-        resp?.data?.appointments ?? resp?.data?.data ?? resp?.data ?? [];
-      const arr = Array.isArray(fetched) ? fetched : [];
-      console.log(arr);
-
-      setServiceAppts(arr);
-      setAppointmentsRaw((p) => ({ ...p, services: arr }));
+      setServiceAppts(extractList(resp?.data));
     } catch (err) {
       console.error(
         "Error calling /api/service-appointments/me:",
         err?.response?.data || err.message || err,
       );
-
-      if (user?.id) {
-        try {
-          console.log("Attempting debug request with ?createdBy=", user.id);
-          const debugResp = await API.get(
-            `/api/service-appointments/me?createdBy=${user.id}`,
-            { headers },
-          );
-          console.log("Debug fallback response (services):", debugResp?.data);
-
-          const fetched =
-            debugResp?.data?.appointments ??
-            debugResp?.data?.data ??
-            debugResp?.data ??
-            [];
-          const arr = Array.isArray(fetched) ? fetched : [];
-          setServiceAppts(arr);
-          setAppointmentsRaw((p) => ({ ...p, services: arr }));
-        } catch (err2) {
-          console.error(
-            "Debug fallback failed (services):",
-            err2?.response?.data || err2.message || err2,
-          );
-          setError((prev) =>
-            prev
-              ? prev + " | Services failed"
-              : "Failed to load service appointments. Check console.",
-          );
-          setServiceAppts([]);
-        }
-      } else {
-        setError((prev) =>
-          prev
-            ? prev + " | No user id for services"
-            : "Failed to load service appointments and no user id available for debug fallback.",
-        );
-        setServiceAppts([]);
-      }
+      addError("Failed to load service appointments.");
+      setServiceAppts([]);
     } finally {
       setLoadingServices(false);
     }
-  }, [isLoaded, getToken, user]);
+  }, [isLoaded, isSignedIn, getToken]);
 
   useEffect(() => {
+    setError(null); // clear once, so one loader can't wipe the other's error
     loadDoctorAppointments();
     loadServiceAppointments();
-  }, [
-    isLoaded,
-    isSignedIn,
-    user,
-    loadDoctorAppointments,
-    loadServiceAppointments,
-  ]);
-
-  function normalizeRescheduled(rt) {
-    if (!rt) return null;
-    if (rt.date && rt.time) return { date: rt.date, time: rt.time };
-    if (
-      rt.date &&
-      (rt.hour !== undefined || rt.minute !== undefined || rt.ampm)
-    ) {
-      const hour = rt.hour ?? 0;
-      const minute = rt.minute ?? 0;
-      const ampm = rt.ampm ?? "";
-      return { date: rt.date, time: `${hour}:${pad(minute)} ${ampm}` };
-    }
-    return {
-      date: rt.date || rt?.dateString || "",
-      time:
-        rt.time ||
-        (rt.hour
-          ? `${rt.hour}:${pad(rt.minute || 0)} ${rt.ampm || ""}`
-          : rt?.timeString || ""),
-    };
-  }
+  }, [loadDoctorAppointments, loadServiceAppointments]);
 
   const appointmentData = useMemo(() => {
     return doctorAppts
       .map((a) => {
-        const id = a._id || a.id || String(a._id || "");
+        const id = a._id || a.id || "";
         const doctorObj =
           typeof a.doctorId === "object" && a.doctorId ? a.doctorId : {};
         const image =
@@ -371,7 +270,6 @@ const AppointmentPage = () => {
           (doctorObj.name && String(doctorObj.name).trim()) ||
           (a.doctorName && String(a.doctorName).trim()) ||
           (a.doctor && String(a.doctor).trim()) ||
-          (a.patientName && String(a.patientName).trim()) ||
           "Doctor";
 
         const patientName = a.patientName || a.patient || "Patient";
@@ -379,15 +277,7 @@ const AppointmentPage = () => {
           doctorObj.specialization || a.specialization || a.speciality || "";
         const experience = doctorObj.experience || a.experience || "";
         const date = a.date || "";
-        let time = a.time || "";
-
-        if (!time) {
-          if (a.hour !== undefined && a.minute !== undefined && a.ampm) {
-            time = `${a.hour}:${pad(a.minute)} ${a.ampm}`;
-          } else if (a.hour !== undefined && a.ampm) {
-            time = `${a.hour}:00 ${a.ampm}`;
-          }
-        }
+        const time = buildTime(a);
 
         const payment = (a.payment && a.payment.method) || "Cash";
         const status =
@@ -420,7 +310,7 @@ const AppointmentPage = () => {
   const serviceData = useMemo(() => {
     return serviceAppts
       .map((s) => {
-        const id = s._id || s.id || String(s._id || "");
+        const id = s._id || s.id || "";
         const svc =
           typeof s.serviceId === "object" && s.serviceId ? s.serviceId : {};
         const image =
@@ -434,20 +324,12 @@ const AppointmentPage = () => {
         const patientName = s.patientName || s.patient || "Patient";
         const price = s.fees ?? s.amount ?? s.price ?? 0;
         const date = s.date || "";
-        let time = s.time || "";
-        if (!time) {
-          if (s.hour !== undefined && s.minute !== undefined && s.ampm) {
-            time = `${s.hour}:${pad(s.minute)} ${s.ampm}`;
-          } else if (s.hour !== undefined && s.ampm) {
-            time = `${s.hour}:00 ${s.ampm}`;
-          }
-        }
+        const time = buildTime(s);
 
         const payment = (s.payment && s.payment.method) || "Cash";
         const status =
           s.status ||
           (s.payment && s.payment.status === "Paid" ? "Confirmed" : "Pending");
-
         const rescheduledTo = normalizeRescheduled(s.rescheduledTo || null);
 
         return {
@@ -470,9 +352,14 @@ const AppointmentPage = () => {
     <div className={appointmentPageStyles.pageContainer}>
       <Toaster position="top-right" />
       <div className={appointmentPageStyles.maxWidthContainer}>
+        {error && (
+          <div className={appointmentPageStyles.emptyStateText}>{error}</div>
+        )}
+
         <h1 className={appointmentPageStyles.doctorTitle}>
           Your Doctor Appointments
         </h1>
+
         {loadingDoctors && (
           <div className={appointmentPageStyles.loadingText}>
             Loading Doctors....
@@ -484,6 +371,7 @@ const AppointmentPage = () => {
             No doctor appointment found.
           </div>
         )}
+
         <div className={appointmentPageStyles.doctorGrid}>
           {appointmentData.map((item) => (
             <div className={cardStyles.doctorCard} key={item.id}>
@@ -498,8 +386,7 @@ const AppointmentPage = () => {
               <h2 className={cardStyles.doctorName}>{item.doctor}</h2>
               <div className={cardStyles.specialization}>
                 {item.specialization}
-                {""}
-                {item.experience ? `* ${item.experience}` : ""}
+                {item.experience ? ` • ${item.experience}` : ""}
               </div>
               <p className={cardStyles.dateContainer}>
                 <CalendarDays className={iconSize.medium} />
@@ -515,7 +402,7 @@ const AppointmentPage = () => {
               </div>
               {item.status === "Rescheduled" && item.rescheduledTo ? (
                 <div className={cardStyles.rescheduledText}>
-                  Reschedule to{" "}
+                  Rescheduled to{" "}
                   <span className={cardStyles.rescheduledSpan}>
                     {item.rescheduledTo.date} : {item.rescheduledTo.time}
                   </span>
@@ -524,9 +411,11 @@ const AppointmentPage = () => {
             </div>
           ))}
         </div>
+
         <h1 className={appointmentPageStyles.serviceTitle}>
           Your Booked Services
         </h1>
+
         {loadingServices && (
           <div className={appointmentPageStyles.serviceLoadingText}>
             Loading service Bookings....
@@ -538,6 +427,7 @@ const AppointmentPage = () => {
             No service bookings found.
           </div>
         )}
+
         <div className={appointmentPageStyles.serviceGrid}>
           {serviceData.map((srv) => (
             <div key={srv.id} className={cardStyles.serviceCard}>
@@ -552,7 +442,10 @@ const AppointmentPage = () => {
 
               <h3 className={cardStyles.serviceName}>{srv.name}</h3>
 
-              <p className={cardStyles.price}>₹{srv.price}</p>
+              <p className={cardStyles.price}>
+                {CURRENCY}
+                {srv.price}
+              </p>
 
               <p className={cardStyles.serviceDateContainer}>
                 <CalendarDays className={iconSize.medium} /> {srv.date}

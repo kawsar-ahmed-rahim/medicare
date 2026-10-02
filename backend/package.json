@@ -10,6 +10,7 @@
     "start": "nodemon server.js"
   },
   "dependencies": {
+    "@clerk/backend": "^3.22.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/express": "^2.1.55",
     "body-parser": "^2.3.0",
