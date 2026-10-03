@@ -20,16 +20,21 @@ const allowOrigin = [
   "http://localhost:5174",
   "https://medicare-yobd.vercel.app",
   "https://medicare-jypy.vercel.app",
+  "https://medicare-alpha-seven.vercel.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        return callback(null, true);
+      }
 
       if (allowOrigin.includes(origin)) {
         return callback(null, true);
       }
+
+      console.log("Blocked CORS origin:", origin);
 
       return callback(new Error("Not allowed by CORS"));
     },
@@ -39,7 +44,7 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 
     allowedHeaders: ["Content-Type", "Authorization"],
-  }),
+  })
 );
 
 app.use(clerkMiddleware());
