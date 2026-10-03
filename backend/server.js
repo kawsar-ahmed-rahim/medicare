@@ -20,6 +20,7 @@ const allowOrigin = [
   "http://localhost:5174",
   "https://medicare-yobd.vercel.app",
   "https://medicare-jypy.vercel.app",
+  "https://medicare-xwn5.vercel.app", 
 ];
 
 app.use(
