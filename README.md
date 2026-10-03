@@ -522,10 +522,11 @@ npm run dev
 ---
 
 ## 🔗 Project Links
-
-**Live Website:** 
+👤 User Interface (patients) | https://medicare-yobd.vercel.app
+🛠️ Admin Panel (doctors/admin) | https://medicare-xwn5.vercel.app
 
 **GitHub Repository:** 
+https://github.com/kawsar-ahmed-rahim/medicare
 
 ---
 
